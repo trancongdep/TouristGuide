@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Hướng Dẫn Viên Ảo</title>
+    <meta name="theme-color" content="#0d6efd">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        header {
+            background-color: #0d6efd;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { margin: 0; font-size: 1.2rem; }
+        .controls {
+            background: white;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            border-bottom: 1px solid #ddd;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-scan { background-color: #198754; color: white; flex: 1; }
+        .btn-stop { background-color: #dc3545; color: white; }
+        
+        #status {
+            text-align: center;
+            padding: 10px;
+            font-size: 0.9rem;
+            color: #666;
+            font-style: italic;
+        }
+        
+        #places-list {
+            padding: 15px;
+            list-style: none;
+            margin: 0;
+        }
+        
+        .place-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 5px solid #ddd;
+            transition: transform 0.2s;
+        }
+        .place-card.active {
+            border-left-color: #0d6efd;
+            background-color: #e7f1ff;
+        }
+        .place-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .place-dist {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .place-desc {
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .speaking-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: #dc3545;
+            border-radius: 50%;
+            margin-left: 5px;
+            animation: pulse 1s infinite;
+            display: none;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Hướng Dẫn Viên Ảo <span id="version" style="font-size:0.7em; opacity:0.8">v1.0</span></h1>
+</header>
+
+<div class="controls">
+    <button class="btn-scan" onclick="startTour()">🔄 Quét & Thuyết minh</button>
+    <button class="btn-stop" onclick="stopTour()">⏹ Dừng</button>
+</div>
+
+<div id="status">Đang chờ lệnh...</div>
+
+<ul id="places-list">
+    </ul>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo",
+    authDomain: "tavietnam-78ae8.firebaseapp.com",
+    projectId: "tavietnam-78ae8",
+    storageBucket: "tavietnam-78ae8.firebasestorage.app",
+    messagingSenderId: "670121705534",
+    appId: "1:670121705534:web:1027ad98550573ad37116f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  console.log("Firebase initialized");
+</script>
+
+<script>
+    // --- Logic Ứng dụng ---
+    const statusEl = document.getElementById('status');
+    const listEl = document.getElementById('places-list');
+    let synth = window.speechSynthesis;
+    let currentUtterance = null;
+    let placesQueue = [];
+    let isSpeaking = false;
+
+    // Đăng ký Service Worker cho PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker failed', err));
+        });
+    }
+
+    function updateStatus(msg) {
+        statusEl.textContent = msg;
+    }
+
+    function stopTour() {
+        synth.cancel();
+        isSpeaking = false;
+        placesQueue = [];
+        updateStatus("Đã dừng thuyết minh.");
+        document.querySelectorAll('.speaking-indicator').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.place-card').forEach(el => el.classList.remove('active'));
+    }
+
+    function startTour() {
+        stopTour(); // Reset trước khi bắt đầu mới
+        updateStatus("Đang định vị...");
+        listEl.innerHTML = '';
+
+        if (!navigator.geolocation) {
+            updateStatus("Trình duyệt không hỗ trợ định vị.");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                updateStatus(`Đã tìm thấy vị trí. Đang quét địa điểm...`);
+                fetchNearbyPlaces(lat, lon);
+            },
+            (error) => {
+                updateStatus("Lỗi định vị: " + error.message);
+            },
+            { enableHighAccuracy: true }
+        );
+    }
+
+    // Sử dụng Wikipedia API để tìm địa danh xung quanh
+    async function fetchNearbyPlaces(lat, lon) {
+        // Bán kính 1000m, lấy 10 địa điểm gần nhất
+        const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=1000&gslimit=10&format=json&origin=*`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (!data.query || !data.query.geosearch || data.query.geosearch.length === 0) {
+                updateStatus("Không tìm thấy địa điểm nổi tiếng nào gần đây.");
+                return;
+            }
+
+            const places = data.query.geosearch;
+            // Lấy thông tin chi tiết cho từng địa điểm
+            const placeIds = places.map(p => p.pageid).join('|');
+            fetchPlaceDetails(placeIds, places);
+
+        } catch (e) {
+            updateStatus("Lỗi kết nối API Wikipedia.");
+            console.error(e);
+        }
+    }
+
+    async function fetchPlaceDetails(ids, originalPlaces) {
+        const url = `https://vi.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&pageids=${ids}&format=json&origin=*`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            const pages = data.query.pages;
+
+            // Kết hợp dữ liệu khoảng cách và nội dung
+            let results = originalPlaces.map(place => {
+                const details = pages[place.pageid];
+                return {
+                    id: place.pageid,
+                    title: place.title,
+                    dist: place.dist, // Khoảng cách tính bằng mét
+                    extract: details ? details.extract : "Không có mô tả."
+                };
+            });
+
+            // Sắp xếp theo khoảng cách
+            results.sort((a, b) => a.dist - b.dist);
+
+            renderPlaces(results);
+            startReadingQueue(results);
+
+        } catch (e) {
+            updateStatus("Lỗi lấy chi tiết địa điểm.");
+        }
+    }
+
+    function renderPlaces(places) {
+        updateStatus(`Tìm thấy ${places.length} địa điểm. Đang thuyết minh...`);
+        places.forEach(place => {
+            const li = document.createElement('li');
+            li.className = 'place-card';
+            li.id = `place-${place.id}`;
+            li.innerHTML = `
+                <span class="place-title">${place.title} <span class="speaking-indicator"></span></span>
+                <span class="place-dist">Cách đây ${Math.round(place.dist)}m</span>
+                <div class="place-desc">${truncateText(place.extract, 150)}</div>
+            `;
+            listEl.appendChild(li);
+        });
+    }
+
+    function truncateText(text, length) {
+        if (!text) return "";
+        return text.length > length ? text.substring(0, length) + "..." : text;
+    }
+
+    function startReadingQueue(places) {
+        // Đọc lời chào mở đầu
+        speak("Tôi đã tìm thấy các địa điểm sau đây. Bắt đầu thuyết minh.", null);
+
+        places.forEach(place => {
+            // Lọc bớt các ký tự lạ hoặc nội dung quá ngắn
+            if(place.extract && place.extract.length > 20) {
+                const textToRead = `Địa điểm: ${place.title}. Cách bạn ${Math.round(place.dist)} mét. ${place.extract}`;
+                speak(textToRead, place.id);
+            }
+        });
+    }
+
+    function speak(text, placeId) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'vi-VN'; // Giọng tiếng Việt
+        utterance.rate = 1.0; // Tốc độ đọc
+
+        utterance.onstart = () => {
+            if (placeId) {
+                // Highlight UI
+                document.querySelectorAll('.place-card').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.speaking-indicator').forEach(el => el.style.display = 'none');
+                
+                const card = document.getElementById(`place-${placeId}`);
+                if (card) {
+                    card.classList.add('active');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const indicator = card.querySelector('.speaking-indicator');
+                    if (indicator) indicator.style.display = 'inline-block';
+                }
+            }
+        };
+
+        utterance.onend = () => {
+             if (placeId) {
+                const card = document.getElementById(`place-${placeId}`);
+                if (card) {
+                    card.classList.remove('active');
+                    card.querySelector('.speaking-indicator').style.display = 'none';
+                }
+             }
+        };
+
+        synth.speak(utterance);
+    }
+</script>
+
+</body>
+</html>
