@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>HDV Du Lịch & Dẫn Đường v2.0</title>
+    <title>HDV Du Lịch & Dẫn Đường v2.1</title>
     <meta name="theme-color" content="#212529">
     <link rel="manifest" href="manifest.json">
     
@@ -86,6 +86,17 @@
         .place-badge { font-size: 0.7rem; background: #a73b24; color: white; padding: 2px 5px; border-radius: 3px; display: none; }
         .place-card.priority .place-badge { display: inline-block; }
         .place-desc { font-size: 0.85rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px;}
+
+        /* FOOTER */
+        footer {
+            background-color: #e9ecef;
+            color: #6c757d;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.75rem;
+            border-top: 1px solid #dee2e6;
+            flex-shrink: 0;
+        }
         
     </style>
 </head>
@@ -139,6 +150,10 @@
     <ul id="places-list"></ul>
 </div>
 
+<footer>
+    Copyright TCDsoft @2025 - version 2.1
+</footer>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script type="module">
@@ -152,7 +167,7 @@
     appId: "1:670121705534:web:1027ad98550573ad37116f"
   };
   const app = initializeApp(firebaseConfig);
-  console.log("App v2.0 Initialized");
+  console.log("App v2.1 Initialized");
 </script>
 
 <script>
@@ -253,7 +268,7 @@
     }
     initLocation();
 
-    // --- 4. NAVIGATION & PRE-SCAN (Sửa lỗi quan trọng) ---
+    // --- 4. NAVIGATION & PRE-SCAN ---
     async function setupNavigation(query) {
         updateStatus("Đang tìm đường...");
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=1`);
@@ -281,27 +296,21 @@
         routePolyline = L.polyline(latLngs, {color: '#0d6efd', weight: 6}).addTo(map);
         map.fitBounds(routePolyline.getBounds());
 
-        // FIX: Quét trước toàn bộ tuyến đường ngay lập tức
         updateStatus("Đang tải dữ liệu thuyết minh dọc đường...");
         await scanRouteSamples(latLngs);
 
         speak(`Đã sẵn sàng. Bắt đầu di chuyển đến ${dest.display_name.split(',')[0]}.`, true);
     }
 
-    // Hàm mới: Quét mẫu dọc đường đi
     async function scanRouteSamples(pathCoords) {
-        // Lấy mẫu cứ 1km lấy 1 điểm để quét Wiki
         const samplePoints = [];
-        // Ước tính 1 độ ~ 111km -> 0.01 độ ~ 1km
         const step = Math.floor(pathCoords.length / 15) || 1; 
 
         for(let i=0; i<pathCoords.length; i+=step) {
             samplePoints.push({lat: pathCoords[i][0], lon: pathCoords[i][1]});
         }
-        // Thêm điểm đích
         samplePoints.push({lat: pathCoords[pathCoords.length-1][0], lon: pathCoords[pathCoords.length-1][1]});
         
-        // Quét song song (Tối đa 10 request để không bị block)
         const scanPromises = samplePoints.slice(0, 10).map(pt => scanSurroundings(pt.lat, pt.lon));
         await Promise.all(scanPromises);
     }
@@ -328,14 +337,13 @@
         document.getElementById('nav-instruction').innerText = instruction;
         document.getElementById('nav-icon').innerText = icon;
 
-        if (dist < 30) { nextStepIndex++; return true; } // Đã qua ngã rẽ -> Bận xử lý
-        if (dist < 100 && dist > 80 && !synth.speaking) { speak(`Sắp ${instruction}.`, true); return true; } // Nhắc nhở -> Bận
-        return false; // Rảnh, có thể thuyết minh
+        if (dist < 30) { nextStepIndex++; return true; } 
+        if (dist < 100 && dist > 80 && !synth.speaking) { speak(`Sắp ${instruction}.`, true); return true; } 
+        return false; 
     }
 
     // --- 5. TOUR GUIDE ---
     function processTourGuide(lat, lon) {
-        // Nếu đã đi xa điểm quét cuối cùng quá 2km -> Quét tiếp
         if (getDist(lat, lon, lastScanLat, lastScanLon) > 2000) {
             scanSurroundings(lat, lon);
         }
@@ -345,11 +353,9 @@
         let nearest = null;
         let minDist = 99999;
         
-        // Tìm điểm chưa đọc gần nhất
         placesQueue.forEach(p => {
             if (alreadyReadIds.includes(p.id)) return;
             const d = getDist(lat, lon, p.lat, p.lon);
-            // Bán kính kích hoạt đọc: 600m
             if (d < 600) { 
                 if (d < minDist) { minDist = d; nearest = p; } 
             }
@@ -357,7 +363,6 @@
 
         if (nearest) {
             alreadyReadIds.push(nearest.id);
-            // UI Update
             document.querySelectorAll('.place-card').forEach(e => e.classList.remove('active'));
             const card = document.getElementById(`place-${nearest.id}`);
             if(card) { card.classList.add('active'); card.scrollIntoView({behavior:"smooth", block:"center"}); }
@@ -374,7 +379,6 @@
 
     async function scanSurroundings(lat, lon) {
         lastScanLat = lat; lastScanLon = lon;
-        // Bán kính quét Wiki: 2000m
         const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=2000&gslimit=10&format=json&origin=*`;
         
         try {
@@ -383,7 +387,6 @@
             
             if (!data.query || !data.query.geosearch) return;
             
-            // Lọc các điểm chưa có trong hàng đợi
             const newPlaces = data.query.geosearch.filter(p => !placesQueue.some(old => old.id === p.pageid));
             if (newPlaces.length === 0) return;
 
@@ -407,7 +410,7 @@
 
     function renderList() {
         listEl.innerHTML = "";
-        placesQueue.sort((a,b) => (b.isPriority - a.isPriority)); // Ưu tiên di tích lên đầu
+        placesQueue.sort((a,b) => (b.isPriority - a.isPriority)); 
         placesQueue.forEach(p => {
             if (alreadyReadIds.includes(p.id)) return;
             const li = document.createElement('li');
