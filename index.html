@@ -108,7 +108,7 @@
 <body>
 
 <header>
-    <h1>Hướng Dẫn Viên Ảo <span id="version" style="font-size:0.7em; opacity:0.8">v1.0</span></h1>
+    <h1>Hướng Dẫn Viên Ảo <span id="version" style="font-size:0.7em; opacity:0.8">v1.1</span></h1>
 </header>
 
 <div class="controls">
@@ -184,7 +184,7 @@
             (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                updateStatus(`Đã tìm thấy vị trí. Đang quét địa điểm...`);
+                updateStatus(`Đã tìm thấy vị trí. Đang quét địa điểm mở rộng...`);
                 fetchNearbyPlaces(lat, lon);
             },
             (error) => {
@@ -196,15 +196,15 @@
 
     // Sử dụng Wikipedia API để tìm địa danh xung quanh
     async function fetchNearbyPlaces(lat, lon) {
-        // Bán kính 1000m, lấy 10 địa điểm gần nhất
-        const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=1000&gslimit=10&format=json&origin=*`;
+        // UPDATE v1.1: Tăng bán kính lên 10000m (10km) và giới hạn 20 địa điểm
+        const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=10000&gslimit=20&format=json&origin=*`;
 
         try {
             const response = await fetch(url);
             const data = await response.json();
             
             if (!data.query || !data.query.geosearch || data.query.geosearch.length === 0) {
-                updateStatus("Không tìm thấy địa điểm nổi tiếng nào gần đây.");
+                updateStatus("Không tìm thấy địa điểm nổi tiếng nào trong bán kính 10km.");
                 return;
             }
 
@@ -238,7 +238,7 @@
                 };
             });
 
-            // Sắp xếp theo khoảng cách
+            // UPDATE v1.1: Sắp xếp theo khoảng cách (Gần đến xa)
             results.sort((a, b) => a.dist - b.dist);
 
             renderPlaces(results);
@@ -252,12 +252,18 @@
     function renderPlaces(places) {
         updateStatus(`Tìm thấy ${places.length} địa điểm. Đang thuyết minh...`);
         places.forEach(place => {
+            // Hiển thị khoảng cách km nếu > 1000m
+            let distDisplay = Math.round(place.dist) + "m";
+            if(place.dist > 1000) {
+                distDisplay = (place.dist / 1000).toFixed(1) + "km";
+            }
+
             const li = document.createElement('li');
             li.className = 'place-card';
             li.id = `place-${place.id}`;
             li.innerHTML = `
                 <span class="place-title">${place.title} <span class="speaking-indicator"></span></span>
-                <span class="place-dist">Cách đây ${Math.round(place.dist)}m</span>
+                <span class="place-dist">Cách đây ${distDisplay}</span>
                 <div class="place-desc">${truncateText(place.extract, 150)}</div>
             `;
             listEl.appendChild(li);
@@ -271,12 +277,16 @@
 
     function startReadingQueue(places) {
         // Đọc lời chào mở đầu
-        speak("Tôi đã tìm thấy các địa điểm sau đây. Bắt đầu thuyết minh.", null);
+        speak(`Tôi đã tìm thấy ${places.length} địa điểm trong bán kính 10 cây số. Bắt đầu thuyết minh từ điểm gần nhất.`, null);
 
         places.forEach(place => {
             // Lọc bớt các ký tự lạ hoặc nội dung quá ngắn
             if(place.extract && place.extract.length > 20) {
-                const textToRead = `Địa điểm: ${place.title}. Cách bạn ${Math.round(place.dist)} mét. ${place.extract}`;
+                let distSpeak = Math.round(place.dist) + " mét";
+                if(place.dist > 1000) {
+                    distSpeak = Math.round(place.dist / 1000) + " cây số";
+                }
+                const textToRead = `Địa điểm: ${place.title}. Cách bạn ${distSpeak}. ${place.extract}`;
                 speak(textToRead, place.id);
             }
         });
@@ -319,3 +329,4 @@
 
 </body>
 </html>
+
