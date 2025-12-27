@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Hướng Dẫn Viên Ảo</title>
+    <title>HDV Du Lịch Thông Minh</title>
     <meta name="theme-color" content="#0d6efd">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -15,7 +16,7 @@
             color: #333;
         }
         header {
-            background-color: #0d6efd;
+            background-color: #a73b24;
             color: white;
             padding: 15px;
             text-align: center;
@@ -24,33 +25,35 @@
             z-index: 1000;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        h1 { margin: 0; font-size: 1.2rem; }
+        h1 { margin: 0; font-size: 1.1rem; }
         .controls {
             background: white;
-            padding: 15px;
+            padding: 10px;
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            justify-content: center;
             border-bottom: 1px solid #ddd;
         }
+        .btn-group { display: flex; gap: 10px; }
         button {
-            padding: 12px 20px;
+            padding: 12px;
             border: none;
             border-radius: 8px;
             font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
+            flex: 1;
         }
-        .btn-scan { background-color: #198754; color: white; flex: 1; }
-        .btn-stop { background-color: #dc3545; color: white; }
+        .btn-scan { background-color: #198754; color: white; }
+        .btn-stop { background-color: #dc3545; color: white; flex: 0.4; }
         
         #status {
             text-align: center;
             padding: 10px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: #666;
-            font-style: italic;
+            background: #fff3cd;
+            margin: 0;
         }
         
         #places-list {
@@ -66,57 +69,83 @@
             margin-bottom: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             border-left: 5px solid #ddd;
-            transition: transform 0.2s;
+            position: relative;
+        }
+        /* Style cho địa điểm phía trước */
+        .place-card.ahead {
+            border-left: 5px solid #198754; /* Màu xanh lá cho hướng đi tới */
+            background-color: #f0fff4;
         }
         .place-card.active {
-            border-left-color: #0d6efd;
-            background-color: #e7f1ff;
+            border-left-color: #a73b24;
+            background-color: #fff5f5;
+        }
+        
+        .place-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
         .place-title {
             font-weight: bold;
             font-size: 1.1rem;
+            color: #333;
             margin-bottom: 5px;
             display: block;
         }
-        .place-dist {
+        .direction-badge {
+            font-size: 0.75rem;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            white-space: nowrap;
+            margin-left: 8px;
+        }
+        .badge-ahead { background: #198754; color: white; }
+        .badge-history { background: #a73b24; color: white; }
+        
+        .place-meta {
             font-size: 0.8rem;
-            color: #888;
+            color: #666;
             margin-bottom: 8px;
             display: block;
         }
         .place-desc {
             font-size: 0.95rem;
             line-height: 1.5;
+            color: #444;
         }
+        
         .speaking-indicator {
             display: inline-block;
             width: 10px;
             height: 10px;
             background-color: #dc3545;
             border-radius: 50%;
-            margin-left: 5px;
+            margin-right: 5px;
             animation: pulse 1s infinite;
             display: none;
         }
         @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
         }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>Hướng Dẫn Viên Ảo <span id="version" style="font-size:0.7em; opacity:0.8">v1.1</span></h1>
+    <h1>HDV Du Lịch Ảo <span id="version" style="font-size:0.7em; opacity:0.8">v1.3</span></h1>
 </header>
 
 <div class="controls">
-    <button class="btn-scan" onclick="startTour()">🔄 Quét & Thuyết minh</button>
-    <button class="btn-stop" onclick="stopTour()">⏹ Dừng</button>
+    <div id="status">Bấm Quét để bắt đầu...</div>
+    <div class="btn-group">
+        <button class="btn-scan" onclick="startTracking()">🚀 Bắt đầu đi tour</button>
+        <button class="btn-stop" onclick="stopTour()">⏹ Dừng</button>
+    </div>
 </div>
-
-<div id="status">Đang chờ lệnh...</div>
 
 <ul id="places-list">
     </ul>
@@ -136,135 +165,213 @@
 
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
-  console.log("Firebase initialized");
+  console.log("Firebase v1.3 initialized");
 </script>
 
 <script>
-    // --- Logic Ứng dụng ---
     const statusEl = document.getElementById('status');
     const listEl = document.getElementById('places-list');
     let synth = window.speechSynthesis;
-    let currentUtterance = null;
-    let placesQueue = [];
+    let watchId = null;
+    let lastLat = null;
+    let lastLon = null;
+    let currentHeading = null; // Hướng di chuyển (0-360 độ)
     let isSpeaking = false;
+    let alreadyReadIds = []; // Danh sách các ID đã đọc để tránh đọc lại liên tục
 
-    // Đăng ký Service Worker cho PWA
+    // Từ khóa ưu tiên
+    const PRIORITY_KEYWORDS = [
+        'chùa', 'đình', 'đền', 'miếu', 'nhà thờ', 'thánh đường', 
+        'di tích', 'lịch sử', 'bảo tàng', 'lăng', 'tẩm', 'tháp', 
+        'cổng', 'phố cổ', 'nhà hát', 'quảng trường'
+    ];
+
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker registered'))
-                .catch(err => console.log('Service Worker failed', err));
-        });
+        window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
     }
 
-    function updateStatus(msg) {
-        statusEl.textContent = msg;
-    }
+    function updateStatus(msg) { statusEl.textContent = msg; }
 
     function stopTour() {
+        if (watchId) navigator.geolocation.clearWatch(watchId);
         synth.cancel();
         isSpeaking = false;
-        placesQueue = [];
-        updateStatus("Đã dừng thuyết minh.");
-        document.querySelectorAll('.speaking-indicator').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.place-card').forEach(el => el.classList.remove('active'));
+        updateStatus("Đã dừng. Bạn có thể bấm bắt đầu lại.");
     }
 
-    function startTour() {
-        stopTour(); // Reset trước khi bắt đầu mới
-        updateStatus("Đang định vị...");
+    function startTracking() {
+        stopTour();
         listEl.innerHTML = '';
+        updateStatus("Đang định vị và xác định hướng đi...");
+        alreadyReadIds = [];
 
         if (!navigator.geolocation) {
-            updateStatus("Trình duyệt không hỗ trợ định vị.");
+            updateStatus("Thiết bị không hỗ trợ GPS.");
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                updateStatus(`Đã tìm thấy vị trí. Đang quét địa điểm mở rộng...`);
-                fetchNearbyPlaces(lat, lon);
-            },
-            (error) => {
-                updateStatus("Lỗi định vị: " + error.message);
-            },
-            { enableHighAccuracy: true }
+        // Sử dụng watchPosition để cập nhật liên tục khi di chuyển
+        watchId = navigator.geolocation.watchPosition(
+            handlePositionUpdate,
+            (err) => updateStatus("Lỗi GPS: " + err.message),
+            { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
         );
     }
 
-    // Sử dụng Wikipedia API để tìm địa danh xung quanh
+    function handlePositionUpdate(position) {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        
+        // Lấy hướng từ GPS (nếu có) hoặc tự tính dựa trên tọa độ cũ
+        let heading = position.coords.heading;
+        
+        if (!heading && lastLat && lastLon) {
+            heading = calculateBearing(lastLat, lastLon, lat, lon);
+        }
+
+        // Cập nhật vị trí cũ
+        lastLat = lat;
+        lastLon = lon;
+        
+        // Nếu di chuyển đủ nhanh mới có heading chính xác
+        if (heading !== null && !isNaN(heading)) {
+            currentHeading = heading;
+            updateStatus(`Đang di chuyển: Hướng ${Math.round(heading)}°`);
+        } else {
+            updateStatus("Đang đứng yên hoặc chưa rõ hướng. Quét bán kính...");
+        }
+
+        // Gọi API tìm địa điểm
+        fetchNearbyPlaces(lat, lon);
+    }
+
+    // --- Logic Tính Toán Hướng (Bearing) ---
+    function toRad(deg) { return deg * Math.PI / 180; }
+    function toDeg(rad) { return rad * 180 / Math.PI; }
+
+    function calculateBearing(lat1, lon1, lat2, lon2) {
+        const dLon = toRad(lon2 - lon1);
+        const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+                  Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+        const brng = toDeg(Math.atan2(y, x));
+        return (brng + 360) % 360; // Chuẩn hóa về 0-360
+    }
+
+    function isAhead(userHeading, targetBearing) {
+        if (userHeading === null) return false; // Không biết hướng thì coi như không phải phía trước
+        let diff = Math.abs(userHeading - targetBearing);
+        if (diff > 180) diff = 360 - diff;
+        return diff <= 60; // Góc quét 120 độ (60 trái, 60 phải) là "Phía trước"
+    }
+
+    // --- Logic API & Xử lý ---
+
     async function fetchNearbyPlaces(lat, lon) {
-        // UPDATE v1.1: Tăng bán kính lên 10000m (10km) và giới hạn 20 địa điểm
-        const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=10000&gslimit=20&format=json&origin=*`;
+        // Quét rộng 5km, lấy 30 điểm
+        const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=5000&gslimit=30&format=json&origin=*`;
 
         try {
             const response = await fetch(url);
             const data = await response.json();
             
-            if (!data.query || !data.query.geosearch || data.query.geosearch.length === 0) {
-                updateStatus("Không tìm thấy địa điểm nổi tiếng nào trong bán kính 10km.");
-                return;
-            }
+            if (!data.query || !data.query.geosearch) return;
 
             const places = data.query.geosearch;
-            // Lấy thông tin chi tiết cho từng địa điểm
             const placeIds = places.map(p => p.pageid).join('|');
-            fetchPlaceDetails(placeIds, places);
+            
+            fetchDetailsAndSort(placeIds, places, lat, lon);
 
-        } catch (e) {
-            updateStatus("Lỗi kết nối API Wikipedia.");
-            console.error(e);
-        }
+        } catch (e) { console.error(e); }
     }
 
-    async function fetchPlaceDetails(ids, originalPlaces) {
+    async function fetchDetailsAndSort(ids, originalPlaces, userLat, userLon) {
         const url = `https://vi.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&pageids=${ids}&format=json&origin=*`;
-
+        
         try {
             const response = await fetch(url);
             const data = await response.json();
             const pages = data.query.pages;
 
-            // Kết hợp dữ liệu khoảng cách và nội dung
-            let results = originalPlaces.map(place => {
+            let processedPlaces = originalPlaces.map(place => {
                 const details = pages[place.pageid];
+                const bearingToPlace = calculateBearing(userLat, userLon, place.lat, place.lon);
+                const ahead = isAhead(currentHeading, bearingToPlace);
+                const text = (place.title + " " + (details?.extract || "")).toLowerCase();
+                const isHistory = PRIORITY_KEYWORDS.some(k => text.includes(k));
+
                 return {
                     id: place.pageid,
                     title: place.title,
-                    dist: place.dist, // Khoảng cách tính bằng mét
-                    extract: details ? details.extract : "Không có mô tả."
+                    dist: place.dist,
+                    extract: details ? details.extract : "",
+                    bearing: bearingToPlace,
+                    isAhead: ahead,
+                    isHistory: isHistory,
+                    // Điểm số để sắp xếp (Càng thấp càng ưu tiên)
+                    sortScore: calculateSortScore(place.dist, ahead, isHistory)
                 };
             });
 
-            // UPDATE v1.1: Sắp xếp theo khoảng cách (Gần đến xa)
-            results.sort((a, b) => a.dist - b.dist);
+            // Sắp xếp theo điểm số ưu tiên
+            processedPlaces.sort((a, b) => a.sortScore - b.sortScore);
 
-            renderPlaces(results);
-            startReadingQueue(results);
+            renderPlaces(processedPlaces);
+            processSpeechQueue(processedPlaces);
 
-        } catch (e) {
-            updateStatus("Lỗi lấy chi tiết địa điểm.");
-        }
+        } catch (e) { console.error(e); }
+    }
+
+    function calculateSortScore(dist, isAhead, isHistory) {
+        let score = dist; // Mặc định là khoảng cách
+        
+        // Thuật toán ưu tiên:
+        // 1. Nếu đang ở phía trước mặt (hướng đi), coi như gần hơn 60% thực tế
+        if (isAhead) score *= 0.4; 
+        
+        // 2. Nếu là địa điểm lịch sử, ưu tiên tiếp 30%
+        if (isHistory) score *= 0.7;
+
+        // Ví dụ: 
+        // - Chùa (Lịch sử) ở phía trước cách 1000m => Score = 1000 * 0.4 * 0.7 = 280 (Ưu tiên nhất)
+        // - Quán cf (Thường) ở phía trước cách 500m => Score = 500 * 0.4 = 200 (Vẫn ưu tiên vì rất gần và tiện đường)
+        // - Chùa (Lịch sử) ở sau lưng cách 300m => Score = 300 * 0.7 = 210
+        return score;
     }
 
     function renderPlaces(places) {
-        updateStatus(`Tìm thấy ${places.length} địa điểm. Đang thuyết minh...`);
+        listEl.innerHTML = '';
         places.forEach(place => {
-            // Hiển thị khoảng cách km nếu > 1000m
-            let distDisplay = Math.round(place.dist) + "m";
-            if(place.dist > 1000) {
-                distDisplay = (place.dist / 1000).toFixed(1) + "km";
+            let distDisplay = place.dist > 1000 ? (place.dist/1000).toFixed(1)+"km" : Math.round(place.dist)+"m";
+            
+            // Icon chỉ hướng
+            let directionIcon = "📍"; // Mặc định
+            if (currentHeading !== null) {
+                // Tính mũi tên tương đối
+                let relAngle = place.bearing - currentHeading;
+                if(place.isAhead) directionIcon = "⬆️ Phía trước";
+                else if(relAngle > 45 && relAngle < 135) directionIcon = "➡️ Bên phải";
+                else if(relAngle < -45 && relAngle > -135) directionIcon = "⬅️ Bên trái";
+                else directionIcon = "⬇️ Phía sau";
             }
 
             const li = document.createElement('li');
-            li.className = 'place-card';
+            li.className = `place-card ${place.isAhead ? 'ahead' : ''}`;
             li.id = `place-${place.id}`;
+            
+            let badges = "";
+            if (place.isAhead) badges += `<span class="direction-badge badge-ahead">Trên đường đi</span>`;
+            if (place.isHistory) badges += `<span class="direction-badge badge-history">Di tích</span>`;
+
             li.innerHTML = `
-                <span class="place-title">${place.title} <span class="speaking-indicator"></span></span>
-                <span class="place-dist">Cách đây ${distDisplay}</span>
-                <div class="place-desc">${truncateText(place.extract, 150)}</div>
+                <div class="place-header">
+                    <span class="place-title">
+                        <span class="speaking-indicator"></span>
+                        ${place.title}
+                    </span>
+                </div>
+                <div class="place-meta">${directionIcon} • Cách ${distDisplay} ${badges}</div>
+                <div class="place-desc">${truncateText(place.extract, 120)}</div>
             `;
             listEl.appendChild(li);
         });
@@ -275,52 +382,40 @@
         return text.length > length ? text.substring(0, length) + "..." : text;
     }
 
-    function startReadingQueue(places) {
-        // Đọc lời chào mở đầu
-        speak(`Tôi đã tìm thấy ${places.length} địa điểm trong bán kính 10 cây số. Bắt đầu thuyết minh từ điểm gần nhất.`, null);
+    function processSpeechQueue(places) {
+        if (synth.speaking) return;
 
-        places.forEach(place => {
-            // Lọc bớt các ký tự lạ hoặc nội dung quá ngắn
-            if(place.extract && place.extract.length > 20) {
-                let distSpeak = Math.round(place.dist) + " mét";
-                if(place.dist > 1000) {
-                    distSpeak = Math.round(place.dist / 1000) + " cây số";
-                }
-                const textToRead = `Địa điểm: ${place.title}. Cách bạn ${distSpeak}. ${place.extract}`;
-                speak(textToRead, place.id);
-            }
-        });
+        // Tìm địa điểm ưu tiên nhất chưa đọc
+        const nextPlace = places.find(p => !alreadyReadIds.includes(p.id) && p.extract.length > 20);
+
+        if (nextPlace) {
+            alreadyReadIds.push(nextPlace.id);
+            
+            let intro = "";
+            if (nextPlace.isAhead) intro = "Ở phía trước, ";
+            else if (nextPlace.isHistory) intro = "Gần đây có di tích, ";
+            
+            let distText = Math.round(nextPlace.dist) + " mét";
+            
+            const textToRead = `${intro} ${nextPlace.title}. Cách bạn ${distText}. ${nextPlace.extract}`;
+            speak(textToRead, nextPlace.id);
+        }
     }
 
     function speak(text, placeId) {
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'vi-VN'; // Giọng tiếng Việt
-        utterance.rate = 1.0; // Tốc độ đọc
-
+        utterance.lang = 'vi-VN';
+        
         utterance.onstart = () => {
-            if (placeId) {
-                // Highlight UI
+            const card = document.getElementById(`place-${placeId}`);
+            if (card) {
                 document.querySelectorAll('.place-card').forEach(el => el.classList.remove('active'));
                 document.querySelectorAll('.speaking-indicator').forEach(el => el.style.display = 'none');
                 
-                const card = document.getElementById(`place-${placeId}`);
-                if (card) {
-                    card.classList.add('active');
-                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    const indicator = card.querySelector('.speaking-indicator');
-                    if (indicator) indicator.style.display = 'inline-block';
-                }
+                card.classList.add('active');
+                card.querySelector('.speaking-indicator').style.display = 'inline-block';
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-        };
-
-        utterance.onend = () => {
-             if (placeId) {
-                const card = document.getElementById(`place-${placeId}`);
-                if (card) {
-                    card.classList.remove('active');
-                    card.querySelector('.speaking-indicator').style.display = 'none';
-                }
-             }
         };
 
         synth.speak(utterance);
@@ -329,4 +424,3 @@
 
 </body>
 </html>
-
