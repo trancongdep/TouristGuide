@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>HDV Du Lịch & Dẫn Đường v2.1</title>
+    <title>HDV Du Lịch v2.2</title>
     <meta name="theme-color" content="#212529">
     <link rel="manifest" href="manifest.json">
     
@@ -42,6 +42,17 @@
         }
         .limit-circle::after { content: "LIMIT"; position: absolute; bottom: 4px; font-size: 0.5rem; color: #666; }
 
+        /* Icon xe (Nút mở Menu) */
+        #vehicle-trigger {
+            cursor: pointer;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 5px;
+            background: #343a40;
+            transition: background 0.2s;
+        }
+        #vehicle-trigger:active { background: #495057; }
+
         #nav-panel {
             background: #343a40; padding: 10px 15px; display: none;
             align-items: center; border-bottom: 1px solid #444;
@@ -57,8 +68,11 @@
         }
         .story-icon { margin-right: 10px; animation: pulse 1s infinite; font-size: 1.2rem;}
 
-        /* CONTROLS */
-        .controls { background: white; padding: 10px; border-bottom: 1px solid #ddd; }
+        /* SETTINGS / CONTROLS AREA */
+        .controls { background: white; padding: 0; border-bottom: 1px solid #ddd; overflow: hidden; transition: all 0.3s ease;}
+        
+        /* Container cho phần bị ẩn đi */
+        #settings-area { padding: 10px; display: block; }
         
         .vehicle-selector { display: flex; background: #e9ecef; border-radius: 6px; padding: 3px; margin-bottom: 8px; }
         .vehicle-option { flex: 1; text-align: center; padding: 6px; cursor: pointer; border-radius: 4px; font-weight: 500; }
@@ -68,11 +82,19 @@
         input { flex: 1; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 1rem;}
         
         .action-group { display: flex; gap: 10px; }
-        button.action-btn { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; flex: 1; font-size: 1rem; color: white;}
+        button.action-btn { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; flex: 1; font-size: 1rem; color: white; transition: 0.2s; }
         .btn-go { background-color: #198754; }
-        .btn-stop { background-color: #6c757d; flex: 0.4; }
+        .btn-quit { background-color: #dc3545; display: none; margin-top: 10px; width: 100%; } /* Nút thoát ẩn trong menu */
 
-        #status { font-size: 0.8rem; color: #666; margin-top: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Nút Audio nổi (Thay thế vị trí cũ) */
+        #audio-controls { padding: 10px; display: none; text-align: center; background: white; border-top: 1px solid #eee; }
+        .btn-audio { 
+            background-color: #0d6efd; color: white; width: 100%; padding: 12px; 
+            border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; 
+        }
+        .btn-audio.stop { background-color: #dc3545; }
+
+        #status { font-size: 0.8rem; color: #666; margin-top: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px 5px;}
 
         /* MAP & LIST */
         #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -87,16 +109,7 @@
         .place-card.priority .place-badge { display: inline-block; }
         .place-desc { font-size: 0.85rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px;}
 
-        /* FOOTER */
-        footer {
-            background-color: #e9ecef;
-            color: #6c757d;
-            text-align: center;
-            padding: 8px;
-            font-size: 0.75rem;
-            border-top: 1px solid #dee2e6;
-            flex-shrink: 0;
-        }
+        footer { background-color: #e9ecef; color: #6c757d; text-align: center; padding: 8px; font-size: 0.75rem; border-top: 1px solid #dee2e6; flex-shrink: 0; }
         
     </style>
 </head>
@@ -109,9 +122,10 @@
             <span class="speed-label">km/h</span>
         </div>
         <div class="limit-circle"><span id="speed-limit">50</span></div>
-        <div class="speed-box">
+        
+        <div class="speed-box" id="vehicle-trigger" onclick="toggleSettingsMenu()">
             <span class="speed-value" style="font-size: 1.2rem;" id="vehicle-icon">🚗</span>
-            <span class="speed-label" id="vehicle-label">Ô tô</span>
+            <span class="speed-label" id="vehicle-label">Cài đặt</span>
         </div>
     </div>
 
@@ -130,18 +144,27 @@
 </div>
 
 <div class="controls">
-    <div class="vehicle-selector">
-        <div class="vehicle-option active" onclick="setVehicle('car')" id="opt-car">🚗 Ô tô</div>
-        <div class="vehicle-option" onclick="setVehicle('bike')" id="opt-bike">🏍️ Xe máy</div>
+    <div id="settings-area">
+        <div class="vehicle-selector">
+            <div class="vehicle-option active" onclick="setVehicle('car')" id="opt-car">🚗 Ô tô</div>
+            <div class="vehicle-option" onclick="setVehicle('bike')" id="opt-bike">🏍️ Xe máy</div>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="destination-input" placeholder="Nhập điểm đến (VD: Hồ Gươm)">
+        </div>
+        
+        <div class="action-group">
+            <button class="action-btn btn-go" onclick="startApp()">🚀 Bắt đầu</button>
+        </div>
+        
+        <button class="action-btn btn-quit" id="btn-quit" onclick="stopApp()">⏹ Kết thúc hành trình</button>
     </div>
 
-    <div class="input-group">
-        <input type="text" id="destination-input" placeholder="Nhập điểm đến (VD: Hồ Gươm)">
+    <div id="audio-controls">
+        <button class="btn-audio" id="btn-audio-toggle" onclick="toggleAudio()">🔊 Phát thuyết minh</button>
     </div>
-    <div class="action-group">
-        <button class="action-btn btn-go" onclick="startApp()">🚀 Bắt đầu</button>
-        <button class="action-btn btn-stop" onclick="stopApp()">⏹ Dừng</button>
-    </div>
+
     <div id="status">Sẵn sàng...</div>
 </div>
 
@@ -150,9 +173,7 @@
     <ul id="places-list"></ul>
 </div>
 
-<footer>
-    Copyright TCDsoft @2025 - version 2.1
-</footer>
+<footer>Copyright TCDsoft @2025 - version 2.2</footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -167,7 +188,7 @@
     appId: "1:670121705534:web:1027ad98550573ad37116f"
   };
   const app = initializeApp(firebaseConfig);
-  console.log("App v2.1 Initialized");
+  console.log("App v2.2 Initialized");
 </script>
 
 <script>
@@ -183,6 +204,7 @@
     let isRunning = false;
     let isNavigating = false; 
     let vehicleType = 'car';
+    let isAudioEnabled = true; // Mặc định bật
     
     // DATA
     let routeSteps = [];
@@ -191,35 +213,82 @@
     let alreadyReadIds = [];
     let lastScanLat = 0, lastScanLon = 0;
     
-    // UI
+    // UI ELEMENTS
     const elSpeed = document.getElementById('current-speed');
     const elLimit = document.getElementById('speed-limit');
     const elNavPanel = document.getElementById('nav-panel');
     const elStoryPanel = document.getElementById('story-panel');
     const elStoryText = document.getElementById('story-text');
     const listEl = document.getElementById('places-list');
+    
+    const divSettings = document.getElementById('settings-area');
+    const divAudio = document.getElementById('audio-controls');
+    const btnAudio = document.getElementById('btn-audio-toggle');
+    const btnQuit = document.getElementById('btn-quit');
 
     const DEFAULT_LIMIT_CAR = 50;
     const DEFAULT_LIMIT_BIKE = 40;
     const PRIORITY_KEYWORDS = ['chùa', 'đình', 'đền', 'miếu', 'nhà thờ', 'di tích', 'lịch sử', 'bảo tàng', 'lăng', 'văn miếu', 'dinh', 'công viên'];
 
-    // --- 1. QUẢN LÝ XE ---
+    // --- 1. QUẢN LÝ GIAO DIỆN & XE ---
     function setVehicle(type) {
         vehicleType = type;
         document.getElementById('opt-car').className = `vehicle-option ${type==='car'?'active':''}`;
         document.getElementById('opt-bike').className = `vehicle-option ${type==='bike'?'active':''}`;
-        document.getElementById('vehicle-label').innerText = type==='car'?'Ô tô':'Xe máy';
         document.getElementById('vehicle-icon').innerText = type==='car'?'🚗':'🏍️';
         updateSpeedLimitDisplay(null); 
     }
     
     function updateStatus(msg) { document.getElementById('status').innerText = msg; }
 
+    function toggleSettingsMenu() {
+        // Chỉ hoạt động nếu đang chạy (vì nếu chưa chạy thì menu luôn hiện)
+        if (isRunning) {
+            if (divSettings.style.display === 'none') {
+                divSettings.style.display = 'block';
+                divAudio.style.display = 'none'; // Ẩn nút audio để nhường chỗ
+            } else {
+                divSettings.style.display = 'none';
+                divAudio.style.display = 'block';
+            }
+        }
+    }
+
+    function toggleAudio() {
+        if (synth.speaking) {
+            // Đang nói -> Bấm Dừng
+            synth.cancel();
+            updateAudioButton(false); // Chuyển sang trạng thái "Phát"
+            elStoryPanel.style.display = 'none';
+        } else {
+            // Đang im -> Bấm Phát
+            updateAudioButton(true); // Chuyển sang trạng thái "Dừng"
+            // Thử đọc lại địa điểm gần nhất hoặc thông báo
+            speak("Tiếp tục thuyết minh.", false);
+        }
+    }
+
+    function updateAudioButton(isSpeakingState) {
+        if (isSpeakingState) {
+            btnAudio.innerText = "🔇 Dừng thuyết minh";
+            btnAudio.className = "btn-audio stop";
+        } else {
+            btnAudio.innerText = "🔊 Phát thuyết minh";
+            btnAudio.className = "btn-audio";
+        }
+    }
+
     // --- 2. BẮT ĐẦU ---
     async function startApp() {
         const destInput = document.getElementById('destination-input').value.trim();
         isRunning = true;
         
+        // UI CHANGE: Ẩn Settings, Hiện Audio Control
+        divSettings.style.display = 'none';
+        divAudio.style.display = 'block';
+        btnQuit.style.display = 'block'; // Hiện nút thoát trong menu
+        updateAudioButton(true); // Mặc định là nút Dừng (đang phát)
+
         if (destInput) {
             await setupNavigation(destInput);
         } else {
@@ -231,6 +300,19 @@
             }
             speak("Chế độ tự do kích hoạt.", true);
         }
+    }
+
+    function stopApp() {
+        isRunning = false; isNavigating = false; synth.cancel();
+        
+        // UI RESET
+        divSettings.style.display = 'block';
+        divAudio.style.display = 'none';
+        btnQuit.style.display = 'none';
+        elNavPanel.style.display = 'none';
+        elStoryPanel.style.display = 'none';
+        
+        updateStatus("Đã dừng. Nhập điểm đến mới.");
     }
 
     // --- 3. GPS LOOP ---
@@ -258,7 +340,10 @@
                     let navIsBusy = false;
                     if (isNavigating) navIsBusy = processNavigation(currentLat, currentLon);
 
-                    // Chỉ đọc thuyết minh khi KHÔNG bận dẫn đường
+                    // Check trạng thái nút Audio để update realtime
+                    if (synth.speaking) updateAudioButton(true);
+                    else updateAudioButton(false);
+
                     if (!navIsBusy) processTourGuide(currentLat, currentLon);
                 }
             },
@@ -268,12 +353,12 @@
     }
     initLocation();
 
-    // --- 4. NAVIGATION & PRE-SCAN ---
+    // --- 4. NAVIGATION ---
     async function setupNavigation(query) {
         updateStatus("Đang tìm đường...");
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=1`);
         const data = await res.json();
-        if (data.length === 0) return alert("Không tìm thấy!");
+        if (data.length === 0) { stopApp(); return alert("Không tìm thấy!"); }
         
         const dest = data[0];
         if (destMarker) map.removeLayer(destMarker);
@@ -283,7 +368,7 @@
         const routeRes = await fetch(url);
         const routeData = await routeRes.json();
         
-        if (routeData.code !== 'Ok') return alert("Lỗi đường đi!");
+        if (routeData.code !== 'Ok') { stopApp(); return alert("Lỗi đường đi!"); }
 
         const route = routeData.routes[0];
         routeSteps = route.legs[0].steps;
@@ -296,19 +381,16 @@
         routePolyline = L.polyline(latLngs, {color: '#0d6efd', weight: 6}).addTo(map);
         map.fitBounds(routePolyline.getBounds());
 
-        updateStatus("Đang tải dữ liệu thuyết minh dọc đường...");
+        updateStatus("Đang nạp dữ liệu thuyết minh...");
         await scanRouteSamples(latLngs);
 
-        speak(`Đã sẵn sàng. Bắt đầu di chuyển đến ${dest.display_name.split(',')[0]}.`, true);
+        speak(`Bắt đầu đi đến ${dest.display_name.split(',')[0]}.`, true);
     }
 
     async function scanRouteSamples(pathCoords) {
         const samplePoints = [];
         const step = Math.floor(pathCoords.length / 15) || 1; 
-
-        for(let i=0; i<pathCoords.length; i+=step) {
-            samplePoints.push({lat: pathCoords[i][0], lon: pathCoords[i][1]});
-        }
+        for(let i=0; i<pathCoords.length; i+=step) samplePoints.push({lat: pathCoords[i][0], lon: pathCoords[i][1]});
         samplePoints.push({lat: pathCoords[pathCoords.length-1][0], lon: pathCoords[pathCoords.length-1][1]});
         
         const scanPromises = samplePoints.slice(0, 10).map(pt => scanSurroundings(pt.lat, pt.lon));
@@ -344,10 +426,7 @@
 
     // --- 5. TOUR GUIDE ---
     function processTourGuide(lat, lon) {
-        if (getDist(lat, lon, lastScanLat, lastScanLon) > 2000) {
-            scanSurroundings(lat, lon);
-        }
-
+        if (getDist(lat, lon, lastScanLat, lastScanLon) > 2000) scanSurroundings(lat, lon);
         if (synth.speaking) return;
 
         let nearest = null;
@@ -356,9 +435,7 @@
         placesQueue.forEach(p => {
             if (alreadyReadIds.includes(p.id)) return;
             const d = getDist(lat, lon, p.lat, p.lon);
-            if (d < 600) { 
-                if (d < minDist) { minDist = d; nearest = p; } 
-            }
+            if (d < 600) { if (d < minDist) { minDist = d; nearest = p; } }
         });
 
         if (nearest) {
@@ -380,11 +457,9 @@
     async function scanSurroundings(lat, lon) {
         lastScanLat = lat; lastScanLon = lon;
         const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=2000&gslimit=10&format=json&origin=*`;
-        
         try {
             const res = await fetch(url);
             const data = await res.json();
-            
             if (!data.query || !data.query.geosearch) return;
             
             const newPlaces = data.query.geosearch.filter(p => !placesQueue.some(old => old.id === p.pageid));
@@ -400,7 +475,6 @@
                 if (details && details.extract && details.extract.length > 30) {
                     const text = (p.title + " " + details.extract).toLowerCase();
                     const isPriority = PRIORITY_KEYWORDS.some(k => text.includes(k));
-                    
                     placesQueue.push({ id: p.pageid, title: p.title, lat: p.lat, lon: p.lon, extract: details.extract, isPriority: isPriority });
                 }
             });
@@ -459,9 +533,16 @@
     function speak(text, isUrgent) {
         if (isUrgent) { synth.cancel(); elStoryPanel.style.display = 'none'; }
         else { if (synth.speaking) return; }
+        
+        // Update button state
+        updateAudioButton(true);
+
         const u = new SpeechSynthesisUtterance(text);
         u.lang = 'vi-VN';
-        u.onend = () => { if(!isUrgent) elStoryPanel.style.display = 'none'; };
+        u.onend = () => { 
+            if(!isUrgent) elStoryPanel.style.display = 'none'; 
+            updateAudioButton(false);
+        };
         synth.speak(u);
     }
     
@@ -469,12 +550,6 @@
         var R=6371000; var dLat=(lat2-lat1)*Math.PI/180; var dLon=(lon2-lon1)*Math.PI/180;
         var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
         return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-    }
-    
-    function stopApp() {
-        isRunning = false; isNavigating = false; synth.cancel();
-        elNavPanel.style.display = 'none'; elStoryPanel.style.display = 'none';
-        updateStatus("Đã dừng.");
     }
     
     setVehicle('car');
