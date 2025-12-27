@@ -1,12 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>HDV Du Lịch Thông Minh</title>
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#a73b24">
     <link rel="manifest" href="manifest.json">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -14,141 +16,154 @@
             padding: 0;
             background-color: #f0f2f5;
             color: #333;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
         header {
             background-color: #a73b24;
             color: white;
-            padding: 15px;
+            padding: 10px 15px;
             text-align: center;
-            position: sticky;
-            top: 0;
+            flex-shrink: 0;
             z-index: 1000;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         h1 { margin: 0; font-size: 1.1rem; }
+        
+        /* Khu vực điều khiển */
         .controls {
             background: white;
             padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 999;
+            flex-shrink: 0;
         }
-        .btn-group { display: flex; gap: 10px; }
-        button {
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
+        .input-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
             font-size: 1rem;
+        }
+        .btn-search { background: #0d6efd; color: white; width: 50px; }
+        
+        .action-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
             flex: 1;
+            font-size: 0.95rem;
         }
-        .btn-scan { background-color: #198754; color: white; }
+        .btn-go { background-color: #198754; color: white; }
         .btn-stop { background-color: #dc3545; color: white; flex: 0.4; }
-        
+
         #status {
-            text-align: center;
-            padding: 10px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: #666;
-            background: #fff3cd;
-            margin: 0;
+            margin-top: 5px;
+            font-style: italic;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        
-        #places-list {
-            padding: 15px;
-            list-style: none;
-            margin: 0;
-        }
-        
-        .place-card {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            border-left: 5px solid #ddd;
+
+        /* Khu vực Bản đồ và List */
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             position: relative;
         }
-        /* Style cho địa điểm phía trước */
-        .place-card.ahead {
-            border-left: 5px solid #198754; /* Màu xanh lá cho hướng đi tới */
+        
+        #map {
+            height: 40%; /* Bản đồ chiếm 40% màn hình */
+            width: 100%;
+            background: #e5e3df;
+        }
+
+        #places-list {
+            height: 60%; /* Danh sách chiếm 60% */
+            overflow-y: auto;
+            padding: 10px;
+            list-style: none;
+            margin: 0;
+            background: #f8f9fa;
+        }
+        
+        /* Card địa điểm */
+        .place-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+        }
+        .place-card.on-route {
+            border-left-color: #198754; /* Màu xanh lá: Trên đường đi */
             background-color: #f0fff4;
         }
         .place-card.active {
-            border-left-color: #a73b24;
+            border-left-color: #a73b24; /* Màu đỏ: Đang đọc */
             background-color: #fff5f5;
         }
         
-        .place-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        .place-title {
-            font-weight: bold;
-            font-size: 1.1rem;
-            color: #333;
-            margin-bottom: 5px;
-            display: block;
-        }
-        .direction-badge {
-            font-size: 0.75rem;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-            white-space: nowrap;
-            margin-left: 8px;
-        }
-        .badge-ahead { background: #198754; color: white; }
-        .badge-history { background: #a73b24; color: white; }
+        .place-title { font-weight: bold; font-size: 1rem; color: #a73b24; display: block; margin-bottom: 4px; }
+        .place-meta { font-size: 0.75rem; color: #666; margin-bottom: 6px; }
+        .place-desc { font-size: 0.9rem; color: #333; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         
-        .place-meta {
-            font-size: 0.8rem;
-            color: #666;
-            margin-bottom: 8px;
-            display: block;
-        }
-        .place-desc {
-            font-size: 0.95rem;
-            line-height: 1.5;
-            color: #444;
-        }
-        
-        .speaking-indicator {
+        .badge {
             display: inline-block;
-            width: 10px;
-            height: 10px;
-            background-color: #dc3545;
-            border-radius: 50%;
-            margin-right: 5px;
-            animation: pulse 1s infinite;
-            display: none;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.7em;
+            color: white;
+            margin-left: 5px;
+            vertical-align: middle;
         }
-        @keyframes pulse {
-            0% { transform: scale(0.95); opacity: 0.7; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.7; }
-        }
+        .badge-route { background: #198754; }
+        
+        .speaking-icon { display: none; margin-left: 5px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1.1); } }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>HDV Du Lịch Ảo <span id="version" style="font-size:0.7em; opacity:0.8">v1.3</span></h1>
+    <h1>Dẫn Đường & Thuyết Minh <span id="version" style="font-size:0.7em; opacity:0.8">v1.4</span></h1>
 </header>
 
 <div class="controls">
-    <div id="status">Bấm Quét để bắt đầu...</div>
-    <div class="btn-group">
-        <button class="btn-scan" onclick="startTracking()">🚀 Bắt đầu đi tour</button>
+    <div class="input-group">
+        <input type="text" id="destination-input" placeholder="Nhập điểm đến (VD: Hồ Gươm)">
+        <button class="btn-search" onclick="searchDestination()">🔍</button>
+    </div>
+    <div class="action-group">
+        <button class="btn-go" onclick="calculateRouteAndScan()">🚗 Tìm đường & Quét</button>
         <button class="btn-stop" onclick="stopTour()">⏹ Dừng</button>
     </div>
+    <div id="status">Nhập điểm đến để bắt đầu...</div>
 </div>
 
-<ul id="places-list">
-    </ul>
+<div id="main-content">
+    <div id="map"></div>
+    <ul id="places-list">
+        </ul>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -165,262 +180,298 @@
 
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
-  console.log("Firebase v1.3 initialized");
+  console.log("Firebase v1.4 initialized");
 </script>
 
 <script>
+    // --- KHỞI TẠO BẢN ĐỒ ---
+    const map = L.map('map').setView([10.8231, 106.6297], 13); // Mặc định HCM
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let userMarker, destMarker, routePolyline;
+    let currentLat, currentLon;
+    
+    // --- VARIABLES ---
     const statusEl = document.getElementById('status');
     const listEl = document.getElementById('places-list');
     let synth = window.speechSynthesis;
-    let watchId = null;
-    let lastLat = null;
-    let lastLon = null;
-    let currentHeading = null; // Hướng di chuyển (0-360 độ)
-    let isSpeaking = false;
-    let alreadyReadIds = []; // Danh sách các ID đã đọc để tránh đọc lại liên tục
+    let placesQueue = [];
+    let alreadyReadIds = [];
+    let isTourActive = false;
 
-    // Từ khóa ưu tiên
-    const PRIORITY_KEYWORDS = [
-        'chùa', 'đình', 'đền', 'miếu', 'nhà thờ', 'thánh đường', 
-        'di tích', 'lịch sử', 'bảo tàng', 'lăng', 'tẩm', 'tháp', 
-        'cổng', 'phố cổ', 'nhà hát', 'quảng trường'
-    ];
+    // Các từ khóa ưu tiên
+    const PRIORITY_KEYWORDS = ['chùa', 'đình', 'đền', 'miếu', 'nhà thờ', 'di tích', 'lịch sử', 'bảo tàng', 'lăng', 'tháp', 'cổng', 'công viên'];
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-    }
-
+    // --- GEOLOCATION ---
     function updateStatus(msg) { statusEl.textContent = msg; }
 
-    function stopTour() {
-        if (watchId) navigator.geolocation.clearWatch(watchId);
-        synth.cancel();
-        isSpeaking = false;
-        updateStatus("Đã dừng. Bạn có thể bấm bắt đầu lại.");
-    }
+    function initLocation() {
+        if (!navigator.geolocation) return updateStatus("Không hỗ trợ GPS");
+        navigator.geolocation.watchPosition(
+            (pos) => {
+                currentLat = pos.coords.latitude;
+                currentLon = pos.coords.longitude;
+                
+                // Cập nhật marker trên bản đồ
+                if (!userMarker) {
+                    userMarker = L.marker([currentLat, currentLon], {title: "Bạn ở đây"}).addTo(map).bindPopup("Vị trí của bạn").openPopup();
+                    map.setView([currentLat, currentLon], 14);
+                } else {
+                    userMarker.setLatLng([currentLat, currentLon]);
+                }
 
-    function startTracking() {
-        stopTour();
-        listEl.innerHTML = '';
-        updateStatus("Đang định vị và xác định hướng đi...");
-        alreadyReadIds = [];
-
-        if (!navigator.geolocation) {
-            updateStatus("Thiết bị không hỗ trợ GPS.");
-            return;
-        }
-
-        // Sử dụng watchPosition để cập nhật liên tục khi di chuyển
-        watchId = navigator.geolocation.watchPosition(
-            handlePositionUpdate,
-            (err) => updateStatus("Lỗi GPS: " + err.message),
-            { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                // Nếu đang trong chế độ tour thì kiểm tra khoảng cách tới các điểm để đọc
+                if (isTourActive) checkProximityToRead();
+            },
+            (err) => console.error(err),
+            { enableHighAccuracy: true }
         );
     }
+    initLocation();
 
-    function handlePositionUpdate(position) {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
+    // --- TÌM ĐIỂM ĐẾN (Nominatim API) ---
+    async function searchDestination() {
+        const query = document.getElementById('destination-input').value;
+        if (!query) return alert("Vui lòng nhập điểm đến!");
         
-        // Lấy hướng từ GPS (nếu có) hoặc tự tính dựa trên tọa độ cũ
-        let heading = position.coords.heading;
+        updateStatus("Đang tìm địa điểm...");
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=1`;
         
-        if (!heading && lastLat && lastLon) {
-            heading = calculateBearing(lastLat, lastLon, lat, lon);
-        }
-
-        // Cập nhật vị trí cũ
-        lastLat = lat;
-        lastLon = lon;
-        
-        // Nếu di chuyển đủ nhanh mới có heading chính xác
-        if (heading !== null && !isNaN(heading)) {
-            currentHeading = heading;
-            updateStatus(`Đang di chuyển: Hướng ${Math.round(heading)}°`);
-        } else {
-            updateStatus("Đang đứng yên hoặc chưa rõ hướng. Quét bán kính...");
-        }
-
-        // Gọi API tìm địa điểm
-        fetchNearbyPlaces(lat, lon);
-    }
-
-    // --- Logic Tính Toán Hướng (Bearing) ---
-    function toRad(deg) { return deg * Math.PI / 180; }
-    function toDeg(rad) { return rad * 180 / Math.PI; }
-
-    function calculateBearing(lat1, lon1, lat2, lon2) {
-        const dLon = toRad(lon2 - lon1);
-        const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-                  Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
-        const brng = toDeg(Math.atan2(y, x));
-        return (brng + 360) % 360; // Chuẩn hóa về 0-360
-    }
-
-    function isAhead(userHeading, targetBearing) {
-        if (userHeading === null) return false; // Không biết hướng thì coi như không phải phía trước
-        let diff = Math.abs(userHeading - targetBearing);
-        if (diff > 180) diff = 360 - diff;
-        return diff <= 60; // Góc quét 120 độ (60 trái, 60 phải) là "Phía trước"
-    }
-
-    // --- Logic API & Xử lý ---
-
-    async function fetchNearbyPlaces(lat, lon) {
-        // Quét rộng 5km, lấy 30 điểm
-        const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=5000&gslimit=30&format=json&origin=*`;
-
         try {
-            const response = await fetch(url);
-            const data = await response.json();
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.length === 0) return updateStatus("Không tìm thấy địa điểm này.");
             
-            if (!data.query || !data.query.geosearch) return;
-
-            const places = data.query.geosearch;
-            const placeIds = places.map(p => p.pageid).join('|');
+            const dest = data[0];
+            const destLat = parseFloat(dest.lat);
+            const destLon = parseFloat(dest.lon);
             
-            fetchDetailsAndSort(placeIds, places, lat, lon);
-
-        } catch (e) { console.error(e); }
+            if (destMarker) map.removeLayer(destMarker);
+            destMarker = L.marker([destLat, destLon]).addTo(map).bindPopup(dest.display_name).openPopup();
+            
+            // Zoom để thấy cả 2 điểm
+            if (userMarker) {
+                const group = new L.featureGroup([userMarker, destMarker]);
+                map.fitBounds(group.getBounds().pad(0.2));
+            }
+            
+            updateStatus("Đã chọn: " + dest.display_name.split(',')[0]);
+            return { lat: destLat, lon: destLon };
+        } catch (e) { updateStatus("Lỗi tìm kiếm."); }
     }
 
-    async function fetchDetailsAndSort(ids, originalPlaces, userLat, userLon) {
+    // --- TÍNH ĐƯỜNG ĐI & QUÉT (OSRM Routing) ---
+    async function calculateRouteAndScan() {
+        if (!currentLat || !destMarker) {
+            // Nếu chưa tìm điểm đến, tìm trước
+            const dest = await searchDestination();
+            if (!dest) return;
+        }
+        
+        isTourActive = true;
+        listEl.innerHTML = '';
+        updateStatus("Đang tính đường đi và quét di tích...");
+        
+        const destPos = destMarker.getLatLng();
+        
+        // Gọi OSRM API (Free)
+        const url = `https://router.project-osrm.org/route/v1/driving/${currentLon},${currentLat};${destPos.lng},${destPos.lat}?overview=full&geometries=geojson`;
+        
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if (data.code !== 'Ok') return updateStatus("Không tìm thấy đường đi.");
+            
+            const route = data.routes[0];
+            const coordinates = route.geometry.coordinates; // Mảng [[lon, lat], ...]
+            
+            // Vẽ đường đi lên bản đồ
+            if (routePolyline) map.removeLayer(routePolyline);
+            // Đảo ngược [lon, lat] thành [lat, lon] cho Leaflet
+            const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
+            routePolyline = L.polyline(latLngs, {color: 'blue', weight: 5, opacity: 0.7}).addTo(map);
+            map.fitBounds(routePolyline.getBounds());
+            
+            // THUẬT TOÁN QUÉT DỌC ĐƯỜNG:
+            // Lấy mẫu các điểm trên đường đi (VD: mỗi 20 điểm lấy 1 điểm để quét)
+            const samplePoints = [];
+            const step = Math.max(20, Math.floor(coordinates.length / 10)); // Lấy khoảng 10-15 điểm mẫu
+            
+            for(let i = 0; i < coordinates.length; i += step) {
+                samplePoints.push({ lat: coordinates[i][1], lon: coordinates[i][0] });
+            }
+            // Luôn thêm điểm cuối
+            samplePoints.push({ lat: destPos.lat, lon: destPos.lng });
+            
+            updateStatus(`Đang quét ${samplePoints.length} khu vực dọc lộ trình...`);
+            scanPlacesAlongRoute(samplePoints);
+            
+        } catch (e) { updateStatus("Lỗi tính đường: " + e.message); }
+    }
+
+    // --- QUÉT WIKIPEDIA DỌC LỘ TRÌNH ---
+    async function scanPlacesAlongRoute(points) {
+        let allPlaces = new Map(); // Dùng Map để lọc trùng lặp ID
+        
+        // Sử dụng Promise.all để quét song song
+        const promises = points.map(pt => 
+            fetch(`https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${pt.lat}|${pt.lon}&gsradius=2000&gslimit=10&format=json&origin=*`)
+            .then(res => res.json())
+        );
+        
+        const results = await Promise.all(promises);
+        
+        // Gộp kết quả
+        results.forEach(data => {
+            if (data.query && data.query.geosearch) {
+                data.query.geosearch.forEach(p => {
+                    allPlaces.set(p.pageid, p);
+                });
+            }
+        });
+        
+        // Lấy chi tiết nội dung
+        const uniqueIds = Array.from(allPlaces.keys()).join('|');
+        if (!uniqueIds) return updateStatus("Không thấy địa điểm nào dọc đường.");
+        
+        fetchPlaceDetails(uniqueIds, Array.from(allPlaces.values()));
+    }
+
+    async function fetchPlaceDetails(ids, basicPlaces) {
+        // Chia nhỏ request nếu quá dài (Wikipedia giới hạn khoảng 50 ID)
+        // Ở đây làm đơn giản giả sử < 50
         const url = `https://vi.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&pageids=${ids}&format=json&origin=*`;
         
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            const pages = data.query.pages;
-
-            let processedPlaces = originalPlaces.map(place => {
-                const details = pages[place.pageid];
-                const bearingToPlace = calculateBearing(userLat, userLon, place.lat, place.lon);
-                const ahead = isAhead(currentHeading, bearingToPlace);
-                const text = (place.title + " " + (details?.extract || "")).toLowerCase();
-                const isHistory = PRIORITY_KEYWORDS.some(k => text.includes(k));
-
-                return {
-                    id: place.pageid,
-                    title: place.title,
-                    dist: place.dist,
-                    extract: details ? details.extract : "",
-                    bearing: bearingToPlace,
-                    isAhead: ahead,
-                    isHistory: isHistory,
-                    // Điểm số để sắp xếp (Càng thấp càng ưu tiên)
-                    sortScore: calculateSortScore(place.dist, ahead, isHistory)
-                };
-            });
-
-            // Sắp xếp theo điểm số ưu tiên
-            processedPlaces.sort((a, b) => a.sortScore - b.sortScore);
-
-            renderPlaces(processedPlaces);
-            processSpeechQueue(processedPlaces);
-
-        } catch (e) { console.error(e); }
+        const res = await fetch(url);
+        const data = await res.json();
+        const pages = data.query.pages;
+        
+        let finalPlaces = basicPlaces.map(p => {
+            const details = pages[p.pageid];
+            const text = (p.title + " " + (details?.extract || "")).toLowerCase();
+            const isPriority = PRIORITY_KEYWORDS.some(k => text.includes(k));
+            
+            return {
+                id: p.pageid,
+                title: p.title,
+                lat: p.lat,
+                lon: p.lon,
+                extract: details ? details.extract : "",
+                isPriority: isPriority,
+                read: false
+            };
+        });
+        
+        // Lọc: Chỉ lấy Priority (Lịch sử) HOẶC nằm rất gần
+        finalPlaces = finalPlaces.filter(p => p.isPriority || p.extract.length > 50);
+        
+        // Lưu vào hàng đợi toàn cục để check khi di chuyển
+        placesQueue = finalPlaces;
+        renderList(finalPlaces);
+        
+        speak(`Đã tìm thấy đường đi và ${finalPlaces.length} địa điểm lịch sử dọc lộ trình. Bắt đầu xuất phát!`, null);
     }
 
-    function calculateSortScore(dist, isAhead, isHistory) {
-        let score = dist; // Mặc định là khoảng cách
-        
-        // Thuật toán ưu tiên:
-        // 1. Nếu đang ở phía trước mặt (hướng đi), coi như gần hơn 60% thực tế
-        if (isAhead) score *= 0.4; 
-        
-        // 2. Nếu là địa điểm lịch sử, ưu tiên tiếp 30%
-        if (isHistory) score *= 0.7;
-
-        // Ví dụ: 
-        // - Chùa (Lịch sử) ở phía trước cách 1000m => Score = 1000 * 0.4 * 0.7 = 280 (Ưu tiên nhất)
-        // - Quán cf (Thường) ở phía trước cách 500m => Score = 500 * 0.4 = 200 (Vẫn ưu tiên vì rất gần và tiện đường)
-        // - Chùa (Lịch sử) ở sau lưng cách 300m => Score = 300 * 0.7 = 210
-        return score;
-    }
-
-    function renderPlaces(places) {
+    function renderList(places) {
         listEl.innerHTML = '';
-        places.forEach(place => {
-            let distDisplay = place.dist > 1000 ? (place.dist/1000).toFixed(1)+"km" : Math.round(place.dist)+"m";
-            
-            // Icon chỉ hướng
-            let directionIcon = "📍"; // Mặc định
-            if (currentHeading !== null) {
-                // Tính mũi tên tương đối
-                let relAngle = place.bearing - currentHeading;
-                if(place.isAhead) directionIcon = "⬆️ Phía trước";
-                else if(relAngle > 45 && relAngle < 135) directionIcon = "➡️ Bên phải";
-                else if(relAngle < -45 && relAngle > -135) directionIcon = "⬅️ Bên trái";
-                else directionIcon = "⬇️ Phía sau";
-            }
-
+        places.forEach(p => {
             const li = document.createElement('li');
-            li.className = `place-card ${place.isAhead ? 'ahead' : ''}`;
-            li.id = `place-${place.id}`;
+            li.className = `place-card ${p.isPriority ? 'on-route' : ''}`;
+            li.id = `place-${p.id}`;
+            const badge = p.isPriority ? '<span class="badge badge-route">Di tích</span>' : '';
             
-            let badges = "";
-            if (place.isAhead) badges += `<span class="direction-badge badge-ahead">Trên đường đi</span>`;
-            if (place.isHistory) badges += `<span class="direction-badge badge-history">Di tích</span>`;
-
             li.innerHTML = `
-                <div class="place-header">
-                    <span class="place-title">
-                        <span class="speaking-indicator"></span>
-                        ${place.title}
-                    </span>
-                </div>
-                <div class="place-meta">${directionIcon} • Cách ${distDisplay} ${badges}</div>
-                <div class="place-desc">${truncateText(place.extract, 120)}</div>
+                <span class="place-title">${p.title} ${badge} <span class="speaking-icon">🔊</span></span>
+                <div class="place-meta">Tọa độ: ${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}</div>
+                <div class="place-desc">${truncate(p.extract, 100)}</div>
             `;
             listEl.appendChild(li);
         });
     }
 
-    function truncateText(text, length) {
-        if (!text) return "";
-        return text.length > length ? text.substring(0, length) + "..." : text;
-    }
-
-    function processSpeechQueue(places) {
-        if (synth.speaking) return;
-
-        // Tìm địa điểm ưu tiên nhất chưa đọc
-        const nextPlace = places.find(p => !alreadyReadIds.includes(p.id) && p.extract.length > 20);
-
-        if (nextPlace) {
-            alreadyReadIds.push(nextPlace.id);
+    // --- CHECK KHOẢNG CÁCH KHI DI CHUYỂN ---
+    function checkProximityToRead() {
+        if (!isTourActive || synth.speaking) return;
+        
+        // Tìm địa điểm gần nhất trong bán kính 500m chưa đọc
+        let nearestPlace = null;
+        let minDesc = 999999;
+        
+        placesQueue.forEach(p => {
+            if (alreadyReadIds.includes(p.id)) return;
             
-            let intro = "";
-            if (nextPlace.isAhead) intro = "Ở phía trước, ";
-            else if (nextPlace.isHistory) intro = "Gần đây có di tích, ";
+            const dist = getDistanceFromLatLonInM(currentLat, currentLon, p.lat, p.lon);
             
-            let distText = Math.round(nextPlace.dist) + " mét";
+            // Cập nhật khoảng cách hiển thị (Optional)
             
-            const textToRead = `${intro} ${nextPlace.title}. Cách bạn ${distText}. ${nextPlace.extract}`;
-            speak(textToRead, nextPlace.id);
+            if (dist < 800) { // Nếu đi vào vùng 800m quanh địa điểm
+                if (dist < minDesc) {
+                    minDesc = dist;
+                    nearestPlace = p;
+                }
+            }
+        });
+        
+        if (nearestPlace) {
+            alreadyReadIds.push(nearestPlace.id);
+            speak(`Sắp đến ${nearestPlace.title}. ${nearestPlace.extract}`, nearestPlace.id);
         }
     }
 
-    function speak(text, placeId) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'vi-VN';
-        
-        utterance.onstart = () => {
-            const card = document.getElementById(`place-${placeId}`);
-            if (card) {
+    function speak(text, id) {
+        if (!text) return;
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'vi-VN';
+        u.onstart = () => {
+            if (id) {
                 document.querySelectorAll('.place-card').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('.speaking-indicator').forEach(el => el.style.display = 'none');
-                
-                card.classList.add('active');
-                card.querySelector('.speaking-indicator').style.display = 'inline-block';
-                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const el = document.getElementById(`place-${id}`);
+                if (el) {
+                    el.classList.add('active');
+                    el.querySelector('.speaking-icon').style.display = 'inline-block';
+                    el.scrollIntoView({behavior: "smooth", block: "center"});
+                }
             }
         };
-
-        synth.speak(utterance);
+        u.onend = () => {
+             if (id) {
+                 const el = document.getElementById(`place-${id}`);
+                 if(el) {
+                     el.classList.remove('active');
+                     el.querySelector('.speaking-icon').style.display = 'none';
+                 }
+             }
+        };
+        synth.speak(u);
     }
+
+    function stopTour() {
+        isTourActive = false;
+        synth.cancel();
+        updateStatus("Đã dừng tour.");
+    }
+    
+    function truncate(str, n){
+        return (str.length > n) ? str.substr(0, n-1) + '...' : str;
+    }
+
+    // Haversine formula
+    function getDistanceFromLatLonInM(lat1,lon1,lat2,lon2) {
+        var R = 6371; 
+        var dLat = deg2rad(lat2-lat1); 
+        var dLon = deg2rad(lon2-lon1); 
+        var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+        var d = R * c; 
+        return d * 1000;
+    }
+    function deg2rad(deg) { return deg * (Math.PI/180); }
 </script>
 
 </body>
 </html>
+
