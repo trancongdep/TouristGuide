@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>HDV Du Lịch v2.2</title>
+    <title>HDV Du Lịch v2.3</title>
     <meta name="theme-color" content="#212529">
     <link rel="manifest" href="manifest.json">
     
@@ -12,7 +12,7 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0; padding: 0; background-color: #f0f2f5; color: #333;
+            margin: 0; padding: 0; background-color: #f8f9fa; color: #333;
             display: flex; flex-direction: column; height: 100vh;
         }
         
@@ -42,14 +42,10 @@
         }
         .limit-circle::after { content: "LIMIT"; position: absolute; bottom: 4px; font-size: 0.5rem; color: #666; }
 
-        /* Icon xe (Nút mở Menu) */
+        /* Vehicle Trigger Icon */
         #vehicle-trigger {
-            cursor: pointer;
-            border: 1px solid #444;
-            border-radius: 8px;
-            padding: 5px;
-            background: #343a40;
-            transition: background 0.2s;
+            cursor: pointer; border: 1px solid #444; border-radius: 8px; padding: 5px;
+            background: #343a40; transition: background 0.2s;
         }
         #vehicle-trigger:active { background: #495057; }
 
@@ -68,10 +64,9 @@
         }
         .story-icon { margin-right: 10px; animation: pulse 1s infinite; font-size: 1.2rem;}
 
-        /* SETTINGS / CONTROLS AREA */
-        .controls { background: white; padding: 0; border-bottom: 1px solid #ddd; overflow: hidden; transition: all 0.3s ease;}
+        /* SETTINGS AREA */
+        .controls { background: white; padding: 0; border-bottom: 1px solid #ddd; overflow: hidden; }
         
-        /* Container cho phần bị ẩn đi */
         #settings-area { padding: 10px; display: block; }
         
         .vehicle-selector { display: flex; background: #e9ecef; border-radius: 6px; padding: 3px; margin-bottom: 8px; }
@@ -82,11 +77,11 @@
         input { flex: 1; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 1rem;}
         
         .action-group { display: flex; gap: 10px; }
-        button.action-btn { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; flex: 1; font-size: 1rem; color: white; transition: 0.2s; }
+        button.action-btn { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; flex: 1; font-size: 1rem; color: white; }
         .btn-go { background-color: #198754; }
-        .btn-quit { background-color: #dc3545; display: none; margin-top: 10px; width: 100%; } /* Nút thoát ẩn trong menu */
+        .btn-quit { background-color: #dc3545; display: none; margin-top: 10px; width: 100%; }
 
-        /* Nút Audio nổi (Thay thế vị trí cũ) */
+        /* Audio Controls */
         #audio-controls { padding: 10px; display: none; text-align: center; background: white; border-top: 1px solid #eee; }
         .btn-audio { 
             background-color: #0d6efd; color: white; width: 100%; padding: 12px; 
@@ -96,11 +91,27 @@
 
         #status { font-size: 0.8rem; color: #666; margin-top: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px 5px;}
 
-        /* MAP & LIST */
-        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        #map { height: 50%; width: 100%; background: #e5e3df; }
-        #places-list { height: 50%; overflow-y: auto; padding: 0; list-style: none; margin: 0; background: #f8f9fa; }
+        /* MAIN CONTENT - Fix Layout */
+        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         
+        /* Map takes 60% */
+        #map { height: 60%; width: 100%; background: #e5e3df; transition: height 0.3s; }
+        
+        /* List takes 40% with Placeholder */
+        #places-list { 
+            height: 40%; overflow-y: auto; padding: 0; list-style: none; margin: 0; 
+            background: #f8f9fa; 
+            position: relative;
+        }
+        
+        /* Empty State Styling (Xử lý khoảng trống xấu) */
+        #places-list:empty::before {
+            content: "📡 Đang quét tìm địa điểm...";
+            display: flex; justify-content: center; align-items: center;
+            height: 100%; color: #adb5bd; font-style: italic; font-size: 0.9rem;
+            background: #f8f9fa;
+        }
+
         .place-card { background: white; padding: 12px 15px; border-bottom: 1px solid #dee2e6; border-left: 4px solid transparent; }
         .place-card.priority { border-left-color: #a73b24; background: #fffdfd; }
         .place-card.active { background-color: #ffeeba; border-left-color: #ffc107; }
@@ -162,7 +173,7 @@
     </div>
 
     <div id="audio-controls">
-        <button class="btn-audio" id="btn-audio-toggle" onclick="toggleAudio()">🔊 Phát thuyết minh</button>
+        <button class="btn-audio" id="btn-audio-toggle" onclick="toggleAudio()">🔊 Bật thuyết minh</button>
     </div>
 
     <div id="status">Sẵn sàng...</div>
@@ -173,7 +184,7 @@
     <ul id="places-list"></ul>
 </div>
 
-<footer>Copyright TCDsoft @2025 - version 2.2</footer>
+<footer>Copyright TCDsoft @2025 - version 2.3</footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -188,11 +199,10 @@
     appId: "1:670121705534:web:1027ad98550573ad37116f"
   };
   const app = initializeApp(firebaseConfig);
-  console.log("App v2.2 Initialized");
+  console.log("App v2.3 Initialized");
 </script>
 
 <script>
-    // --- KHỞI TẠO ---
     const map = L.map('map').setView([10.8231, 106.6297], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
@@ -200,20 +210,16 @@
     let currentLat, currentLon;
     let synth = window.speechSynthesis;
     
-    // STATE
     let isRunning = false;
     let isNavigating = false; 
     let vehicleType = 'car';
-    let isAudioEnabled = true; // Mặc định bật
     
-    // DATA
     let routeSteps = [];
     let nextStepIndex = 0;
     let placesQueue = [];
     let alreadyReadIds = [];
     let lastScanLat = 0, lastScanLon = 0;
     
-    // UI ELEMENTS
     const elSpeed = document.getElementById('current-speed');
     const elLimit = document.getElementById('speed-limit');
     const elNavPanel = document.getElementById('nav-panel');
@@ -230,7 +236,6 @@
     const DEFAULT_LIMIT_BIKE = 40;
     const PRIORITY_KEYWORDS = ['chùa', 'đình', 'đền', 'miếu', 'nhà thờ', 'di tích', 'lịch sử', 'bảo tàng', 'lăng', 'văn miếu', 'dinh', 'công viên'];
 
-    // --- 1. QUẢN LÝ GIAO DIỆN & XE ---
     function setVehicle(type) {
         vehicleType = type;
         document.getElementById('opt-car').className = `vehicle-option ${type==='car'?'active':''}`;
@@ -242,11 +247,10 @@
     function updateStatus(msg) { document.getElementById('status').innerText = msg; }
 
     function toggleSettingsMenu() {
-        // Chỉ hoạt động nếu đang chạy (vì nếu chưa chạy thì menu luôn hiện)
         if (isRunning) {
             if (divSettings.style.display === 'none') {
                 divSettings.style.display = 'block';
-                divAudio.style.display = 'none'; // Ẩn nút audio để nhường chỗ
+                divAudio.style.display = 'none';
             } else {
                 divSettings.style.display = 'none';
                 divAudio.style.display = 'block';
@@ -256,15 +260,13 @@
 
     function toggleAudio() {
         if (synth.speaking) {
-            // Đang nói -> Bấm Dừng
             synth.cancel();
-            updateAudioButton(false); // Chuyển sang trạng thái "Phát"
+            updateAudioButton(false);
             elStoryPanel.style.display = 'none';
         } else {
-            // Đang im -> Bấm Phát
-            updateAudioButton(true); // Chuyển sang trạng thái "Dừng"
-            // Thử đọc lại địa điểm gần nhất hoặc thông báo
-            speak("Tiếp tục thuyết minh.", false);
+            updateAudioButton(true);
+            // Thử đọc lại ngay
+            playNearestPlaceImmediately();
         }
     }
 
@@ -273,21 +275,24 @@
             btnAudio.innerText = "🔇 Dừng thuyết minh";
             btnAudio.className = "btn-audio stop";
         } else {
-            btnAudio.innerText = "🔊 Phát thuyết minh";
+            btnAudio.innerText = "🔊 Bật thuyết minh";
             btnAudio.className = "btn-audio";
         }
     }
 
-    // --- 2. BẮT ĐẦU ---
     async function startApp() {
         const destInput = document.getElementById('destination-input').value.trim();
         isRunning = true;
         
-        // UI CHANGE: Ẩn Settings, Hiện Audio Control
         divSettings.style.display = 'none';
         divAudio.style.display = 'block';
-        btnQuit.style.display = 'block'; // Hiện nút thoát trong menu
-        updateAudioButton(true); // Mặc định là nút Dừng (đang phát)
+        btnQuit.style.display = 'block';
+        updateAudioButton(true);
+
+        // Reset dữ liệu cũ
+        placesQueue = [];
+        alreadyReadIds = [];
+        listEl.innerHTML = ""; // Xóa list cũ
 
         if (destInput) {
             await setupNavigation(destInput);
@@ -298,24 +303,20 @@
                 map.setView([currentLat, currentLon], 15);
                 scanSurroundings(currentLat, currentLon);
             }
-            speak("Chế độ tự do kích hoạt.", true);
+            speak("Chế độ tự do. Đang quét...", true);
         }
     }
 
     function stopApp() {
         isRunning = false; isNavigating = false; synth.cancel();
-        
-        // UI RESET
         divSettings.style.display = 'block';
         divAudio.style.display = 'none';
         btnQuit.style.display = 'none';
         elNavPanel.style.display = 'none';
         elStoryPanel.style.display = 'none';
-        
-        updateStatus("Đã dừng. Nhập điểm đến mới.");
+        updateStatus("Đã dừng.");
     }
 
-    // --- 3. GPS LOOP ---
     function initLocation() {
         if (!navigator.geolocation) return updateStatus("Lỗi GPS");
         
@@ -336,14 +337,10 @@
 
                 if (isRunning) {
                     checkSpeedLimit(speedKmh, currentLat, currentLon);
-
                     let navIsBusy = false;
                     if (isNavigating) navIsBusy = processNavigation(currentLat, currentLon);
-
-                    // Check trạng thái nút Audio để update realtime
                     if (synth.speaking) updateAudioButton(true);
                     else updateAudioButton(false);
-
                     if (!navIsBusy) processTourGuide(currentLat, currentLon);
                 }
             },
@@ -353,7 +350,6 @@
     }
     initLocation();
 
-    // --- 4. NAVIGATION ---
     async function setupNavigation(query) {
         updateStatus("Đang tìm đường...");
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=1`);
@@ -367,7 +363,6 @@
         const url = `https://router.project-osrm.org/route/v1/driving/${currentLon},${currentLat};${dest.lon},${dest.lat}?overview=full&geometries=geojson&steps=true`;
         const routeRes = await fetch(url);
         const routeData = await routeRes.json();
-        
         if (routeData.code !== 'Ok') { stopApp(); return alert("Lỗi đường đi!"); }
 
         const route = routeData.routes[0];
@@ -381,9 +376,12 @@
         routePolyline = L.polyline(latLngs, {color: '#0d6efd', weight: 6}).addTo(map);
         map.fitBounds(routePolyline.getBounds());
 
-        updateStatus("Đang nạp dữ liệu thuyết minh...");
+        updateStatus("Đang tải dữ liệu thuyết minh...");
         await scanRouteSamples(latLngs);
-
+        
+        // FIX v2.3: Đọc ngay địa điểm đầu tiên tìm thấy
+        playNearestPlaceImmediately();
+        
         speak(`Bắt đầu đi đến ${dest.display_name.split(',')[0]}.`, true);
     }
 
@@ -402,19 +400,15 @@
         const nextStep = routeSteps[nextStepIndex];
         const stepLoc = nextStep.maneuver.location;
         const dist = getDist(lat, lon, stepLoc[1], stepLoc[0]);
-
         document.getElementById('nav-distance').innerText = dist < 1000 ? Math.round(dist)+"m" : (dist/1000).toFixed(1)+"km";
         
         let instruction = "Đi thẳng";
         let icon = "⬆️";
         const modifier = nextStep.maneuver.modifier;
-        
         if (nextStep.maneuver.type === 'turn') {
             if (modifier && modifier.includes('right')) { icon = "➡️"; instruction = "Rẽ phải"; }
             if (modifier && modifier.includes('left')) { icon = "⬅️"; instruction = "Rẽ trái"; }
-        } else if (nextStep.maneuver.type === 'arrive') {
-             icon = "🏁"; instruction = "Đến đích";
-        }
+        } else if (nextStep.maneuver.type === 'arrive') { icon = "🏁"; instruction = "Đến đích"; }
 
         document.getElementById('nav-instruction').innerText = instruction;
         document.getElementById('nav-icon').innerText = icon;
@@ -424,7 +418,6 @@
         return false; 
     }
 
-    // --- 5. TOUR GUIDE ---
     function processTourGuide(lat, lon) {
         if (getDist(lat, lon, lastScanLat, lastScanLon) > 2000) scanSurroundings(lat, lon);
         if (synth.speaking) return;
@@ -439,19 +432,42 @@
         });
 
         if (nearest) {
-            alreadyReadIds.push(nearest.id);
-            document.querySelectorAll('.place-card').forEach(e => e.classList.remove('active'));
-            const card = document.getElementById(`place-${nearest.id}`);
-            if(card) { card.classList.add('active'); card.scrollIntoView({behavior:"smooth", block:"center"}); }
-
-            elStoryPanel.style.display = 'flex';
-            elStoryText.innerText = nearest.title;
-            
-            const intro = nearest.isPriority ? "Phía trước có di tích. " : "Đang đi qua. ";
-            speak(`${intro} ${nearest.title}. ${nearest.extract}`, false);
+            triggerSpeakPlace(nearest);
         } else {
              if(!synth.speaking) elStoryPanel.style.display = 'none';
         }
+    }
+    
+    // HÀM MỚI: Đọc ngay địa điểm gần nhất trong danh sách (Bán kính rộng hơn để test)
+    function playNearestPlaceImmediately() {
+        if (placesQueue.length === 0) return;
+        
+        // Tìm cái gần nhất (bất kể bao xa, miễn < 2km)
+        let nearest = null;
+        let minDist = 99999;
+        
+        placesQueue.forEach(p => {
+             if (alreadyReadIds.includes(p.id)) return;
+             const d = getDist(currentLat, currentLon, p.lat, p.lon);
+             if (d < 2000) { if (d < minDist) { minDist = d; nearest = p; } }
+        });
+        
+        if (nearest) {
+            triggerSpeakPlace(nearest);
+        }
+    }
+    
+    function triggerSpeakPlace(place) {
+        alreadyReadIds.push(place.id);
+        document.querySelectorAll('.place-card').forEach(e => e.classList.remove('active'));
+        const card = document.getElementById(`place-${place.id}`);
+        if(card) { card.classList.add('active'); card.scrollIntoView({behavior:"smooth", block:"center"}); }
+
+        elStoryPanel.style.display = 'flex';
+        elStoryText.innerText = place.title;
+        
+        const intro = place.isPriority ? "Phía trước có di tích. " : "Gần đây có ";
+        speak(`${intro} ${place.title}. ${place.extract}`, false);
     }
 
     async function scanSurroundings(lat, lon) {
@@ -495,7 +511,6 @@
         });
     }
 
-    // --- 6. SAFETY & UTILS ---
     let lastOverpassCall = 0;
     let currentLimit = DEFAULT_LIMIT_CAR; 
 
@@ -534,7 +549,6 @@
         if (isUrgent) { synth.cancel(); elStoryPanel.style.display = 'none'; }
         else { if (synth.speaking) return; }
         
-        // Update button state
         updateAudioButton(true);
 
         const u = new SpeechSynthesisUtterance(text);
