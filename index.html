@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>HDV Du Lịch & Dẫn Đường</title>
-    <meta name="theme-color" content="#2c3e50">
+    <title>HDV Du Lịch & An Toàn 24/7</title>
+    <meta name="theme-color" content="#212529">
     <link rel="manifest" href="manifest.json">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -13,154 +13,91 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f0f2f5;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
+            margin: 0; padding: 0; background-color: #f0f2f5; color: #333;
+            display: flex; flex-direction: column; height: 100vh;
         }
         
         /* --- DASHBOARD --- */
         #dashboard-container {
-            background: #212529;
-            color: white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 1001;
-            flex-shrink: 0;
+            background: #212529; color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1001; flex-shrink: 0;
         }
 
-        /* Panel Tốc độ & Loại xe */
         #speed-panel {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 15px;
-            border-bottom: 1px solid #444;
-            transition: background 0.3s;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 15px; border-bottom: 1px solid #444; transition: background 0.3s;
         }
-        #speed-panel.warning {
-            background: #dc3545;
-            animation: flash 1s infinite;
-        }
+        #speed-panel.warning { background: #dc3545; animation: flash 1s infinite; }
         @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
 
-        .speed-box { text-align: center; }
+        .speed-box { text-align: center; width: 80px; }
         .speed-value { font-size: 1.8rem; font-weight: bold; font-variant-numeric: tabular-nums; line-height: 1; }
         .speed-label { font-size: 0.7rem; text-transform: uppercase; color: #adb5bd; }
         
+        /* Vòng tròn giới hạn tốc độ */
         .limit-circle {
-            width: 45px; height: 45px;
-            border-radius: 50%;
-            border: 3px solid #dc3545;
+            width: 55px; height: 55px;
+            border-radius: 50%; border: 4px solid #dc3545;
             background: white; color: #333;
             display: flex; justify-content: center; align-items: center;
-            font-weight: bold; font-size: 1.2rem;
+            font-weight: bold; font-size: 1.4rem;
+            position: relative;
+        }
+        /* Nhãn nhỏ "LIMIT" bên trong vòng tròn */
+        .limit-circle::after {
+            content: "LIMIT"; position: absolute; bottom: 4px;
+            font-size: 0.5rem; color: #666;
         }
 
-        /* Panel Dẫn đường */
         #nav-panel {
-            background: #343a40;
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            min-height: 60px;
-            border-bottom: 1px solid #444;
+            background: #343a40; padding: 10px 15px; display: none;
+            align-items: center; border-bottom: 1px solid #444;
         }
         #nav-icon { font-size: 2rem; margin-right: 15px; min-width: 40px; text-align: center; }
         #nav-text { flex: 1; }
-        .nav-instruction { font-size: 1.1rem; font-weight: bold; color: #fff; display: block; line-height: 1.2;}
+        .nav-instruction { font-size: 1.1rem; font-weight: bold; color: #fff; line-height: 1.2;}
         .nav-distance { font-size: 0.9rem; color: #ffc107; font-weight: bold; }
-        .lane-hint { display: block; font-size: 0.85rem; color: #66d9e8; margin-top: 2px; font-style: italic;}
 
-        /* Panel Thuyết minh đang đọc (Mới v1.7) */
         #story-panel {
-            background: #fff3cd;
-            color: #856404;
-            padding: 8px 15px;
-            font-size: 0.9rem;
-            display: none; /* Chỉ hiện khi đang đọc */
-            align-items: center;
-            border-bottom: 1px solid #ffeeba;
+            background: #fff3cd; color: #856404; padding: 10px 15px; font-size: 0.95rem;
+            display: none; align-items: center; border-bottom: 1px solid #ffeeba;
         }
-        .story-icon { margin-right: 10px; animation: pulse 1s infinite; }
+        .story-icon { margin-right: 10px; animation: pulse 1s infinite; font-size: 1.2rem;}
 
         /* --- CONTROLS --- */
-        .controls {
-            background: white;
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
+        .controls { background: white; padding: 10px; border-bottom: 1px solid #ddd; }
         
         .vehicle-selector {
-            display: flex;
-            background: #e9ecef;
-            border-radius: 6px;
-            padding: 3px;
-            margin-bottom: 8px;
+            display: flex; background: #e9ecef; border-radius: 6px; padding: 3px; margin-bottom: 8px;
         }
         .vehicle-option {
-            flex: 1;
-            text-align: center;
-            padding: 6px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-weight: 500;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            flex: 1; text-align: center; padding: 6px; cursor: pointer;
+            border-radius: 4px; font-weight: 500; font-size: 0.9rem;
         }
-        .vehicle-option.active {
-            background: white;
-            color: #0d6efd;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            font-weight: bold;
-        }
+        .vehicle-option.active { background: white; color: #0d6efd; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: bold; }
 
         .input-group { display: flex; gap: 5px; margin-bottom: 8px; }
         input { flex: 1; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 1rem;}
-        .btn-search { background: #0d6efd; color: white; border: none; padding: 0 15px; border-radius: 6px; font-size: 1.2rem; }
         
         .action-group { display: flex; gap: 10px; }
-        button.action-btn { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; flex: 1; font-size: 1rem;}
-        .btn-go { background-color: #198754; color: white; }
-        .btn-stop { background-color: #6c757d; color: white; flex: 0.4; }
+        button.action-btn { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; flex: 1; font-size: 1rem; color: white;}
+        .btn-go { background-color: #198754; }
+        .btn-stop { background-color: #6c757d; flex: 0.4; }
 
         #status { font-size: 0.8rem; color: #666; margin-top: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         /* --- MAP & LIST --- */
-        #main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
+        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         #map { height: 50%; width: 100%; background: #e5e3df; }
-        #places-list {
-            height: 50%;
-            overflow-y: auto;
-            padding: 0;
-            list-style: none;
-            margin: 0;
-            background: #f8f9fa;
-        }
+        #places-list { height: 50%; overflow-y: auto; padding: 0; list-style: none; margin: 0; background: #f8f9fa; }
         
-        .place-card {
-            background: white;
-            padding: 12px 15px;
-            border-bottom: 1px solid #dee2e6;
-            border-left: 4px solid transparent;
-        }
+        .place-card { background: white; padding: 12px 15px; border-bottom: 1px solid #dee2e6; border-left: 4px solid transparent; }
         .place-card.priority { border-left-color: #a73b24; background: #fffdfd; }
         .place-card.active { background-color: #ffeeba; border-left-color: #ffc107; }
-        
-        .place-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
         .place-title { font-weight: bold; font-size: 1rem; color: #212529; }
         .place-badge { font-size: 0.7rem; background: #a73b24; color: white; padding: 2px 5px; border-radius: 3px; display: none; }
         .place-card.priority .place-badge { display: inline-block; }
-        
-        .place-desc { font-size: 0.85rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+        .place-desc { font-size: 0.85rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px;}
         
     </style>
 </head>
@@ -174,7 +111,7 @@
         </div>
         
         <div class="limit-circle">
-            <span id="speed-limit">--</span>
+            <span id="speed-limit">50</span>
         </div>
 
         <div class="speed-box">
@@ -183,18 +120,17 @@
         </div>
     </div>
 
-    <div id="nav-panel" style="display:none;">
+    <div id="nav-panel">
         <div id="nav-icon">⬆️</div>
         <div id="nav-text">
-            <span class="nav-instruction" id="nav-instruction">Sẵn sàng</span>
-            <span class="nav-distance" id="nav-distance">-- m</span>
-            <span class="lane-hint" id="lane-hint"></span>
+            <span class="nav-instruction" id="nav-instruction"></span>
+            <span class="nav-distance" id="nav-distance"></span>
         </div>
     </div>
 
     <div id="story-panel">
-        <span class="story-icon">🔊</span>
-        <span id="story-text">Đang thuyết minh về...</span>
+        <span class="story-icon">🗣️</span>
+        <span id="story-text">Đang thuyết minh...</span>
     </div>
 </div>
 
@@ -205,20 +141,18 @@
     </div>
 
     <div class="input-group">
-        <input type="text" id="destination-input" placeholder="Nhập điểm đến (VD: Văn Miếu)">
-        <button class="btn-search" onclick="searchDestination()">🔍</button>
+        <input type="text" id="destination-input" placeholder="Để trống để đi tự do...">
     </div>
     <div class="action-group">
-        <button class="action-btn btn-go" onclick="calculateRouteAndScan()">🏛 Dẫn đường & HDV</button>
-        <button class="action-btn btn-stop" onclick="stopTour()">⏹ Dừng</button>
+        <button class="action-btn btn-go" onclick="startApp()">🚀 Bắt đầu</button>
+        <button class="action-btn btn-stop" onclick="stopApp()">⏹ Dừng</button>
     </div>
-    <div id="status">Sẵn sàng khởi hành...</div>
+    <div id="status">Sẵn sàng...</div>
 </div>
 
 <div id="main-content">
     <div id="map"></div>
-    <ul id="places-list">
-        </ul>
+    <ul id="places-list"></ul>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -234,83 +168,110 @@
     appId: "1:670121705534:web:1027ad98550573ad37116f"
   };
   const app = initializeApp(firebaseConfig);
-  console.log("Firebase v1.7 Initialized");
+  console.log("App v1.9 Initialized");
 </script>
 
 <script>
-    // --- VARIABLES & SETUP ---
+    // --- KHỞI TẠO ---
     const map = L.map('map').setView([10.8231, 106.6297], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     let userMarker, destMarker, routePolyline;
-    let currentLat, currentLon, currentHeading;
+    let currentLat, currentLon;
     let synth = window.speechSynthesis;
     
-    // State Variables
-    let isTourActive = false;
+    // STATE
+    let isRunning = false;
+    let isNavigating = false; 
     let vehicleType = 'car';
+    
+    // NAV & GUIDE DATA
     let routeSteps = [];
     let nextStepIndex = 0;
-    let currentSpeedLimit = null;
-    let lastOverpassCall = 0;
+    let placesQueue = [];
+    let alreadyReadIds = [];
+    let lastScanLat = 0, lastScanLon = 0;
     
-    // Tour Guide Data
-    let placesQueue = [];     // Danh sách địa điểm đã tìm thấy
-    let alreadyReadIds = [];  // ID các địa điểm đã đọc để không lặp lại
-    
-    // Priority Keywords for Tour Guide
-    const HISTORY_KEYWORDS = ['chùa', 'đình', 'đền', 'miếu', 'nhà thờ', 'di tích', 'lịch sử', 'bảo tàng', 'lăng', 'tẩm', 'tháp', 'cổng', 'văn miếu', 'quốc tử giám'];
-
-    // DOM Elements
+    // UI ELEMENTS
     const elSpeed = document.getElementById('current-speed');
     const elLimit = document.getElementById('speed-limit');
-    const elSpeedPanel = document.getElementById('speed-panel');
     const elNavPanel = document.getElementById('nav-panel');
-    const elNavIcon = document.getElementById('nav-icon');
-    const elNavInstr = document.getElementById('nav-instruction');
-    const elNavDist = document.getElementById('nav-distance');
-    const elLaneHint = document.getElementById('lane-hint');
     const elStoryPanel = document.getElementById('story-panel');
     const elStoryText = document.getElementById('story-text');
     const listEl = document.getElementById('places-list');
 
-    // --- 1. VEHICLE & UTILS ---
+    // TỐC ĐỘ MẶC ĐỊNH (Khi không có dữ liệu bản đồ)
+    // 50km/h cho Ô tô (Quy chuẩn đô thị)
+    // 40km/h cho Xe máy (Quy chuẩn đường nhỏ/hẻm an toàn)
+    const DEFAULT_LIMIT_CAR = 50;
+    const DEFAULT_LIMIT_BIKE = 40;
+
+    const PRIORITY_KEYWORDS = ['chùa', 'đình', 'đền', 'miếu', 'nhà thờ', 'di tích', 'lịch sử', 'bảo tàng', 'lăng', 'văn miếu', 'quốc tử giám', 'dinh', 'công viên'];
+
+    // --- 1. QUẢN LÝ XE & UI ---
     function setVehicle(type) {
         vehicleType = type;
-        document.getElementById('opt-car').className = `vehicle-option ${type === 'car' ? 'active' : ''}`;
-        document.getElementById('opt-bike').className = `vehicle-option ${type === 'bike' ? 'active' : ''}`;
-        document.getElementById('vehicle-label').innerText = type === 'car' ? 'Ô tô' : 'Xe máy';
-        document.getElementById('vehicle-icon').innerText = type === 'car' ? '🚗' : '🏍️';
-        elLimit.innerText = "--";
-        currentSpeedLimit = null;
+        document.getElementById('opt-car').className = `vehicle-option ${type==='car'?'active':''}`;
+        document.getElementById('opt-bike').className = `vehicle-option ${type==='bike'?'active':''}`;
+        document.getElementById('vehicle-label').innerText = type==='car'?'Ô tô':'Xe máy';
+        document.getElementById('vehicle-icon').innerText = type==='car'?'🚗':'🏍️';
+        
+        // Reset về mặc định ngay khi đổi xe
+        updateSpeedLimitDisplay(null); 
     }
     
     function updateStatus(msg) { document.getElementById('status').innerText = msg; }
-    
-    // --- 2. CORE GPS LOOP ---
+
+    // --- 2. START APP ---
+    async function startApp() {
+        const destInput = document.getElementById('destination-input').value.trim();
+        isRunning = true;
+        
+        if (destInput) {
+            await setupNavigation(destInput);
+        } else {
+            isNavigating = false;
+            elNavPanel.style.display = 'none';
+            if (currentLat) {
+                map.setView([currentLat, currentLon], 15);
+                scanSurroundings(currentLat, currentLon);
+            }
+            speak("Chế độ tự do kích hoạt. Sẵn sàng thuyết minh.", true);
+        }
+    }
+
+    // --- 3. GPS CORE LOOP ---
     function initLocation() {
-        if (!navigator.geolocation) return updateStatus("Không hỗ trợ GPS");
+        if (!navigator.geolocation) return updateStatus("Lỗi: Không có GPS");
         
         navigator.geolocation.watchPosition(
             (pos) => {
                 currentLat = pos.coords.latitude;
                 currentLon = pos.coords.longitude;
+                // Nếu GPS trả về null speed (đứng yên), gán bằng 0
                 const speedKmh = Math.round((pos.coords.speed || 0) * 3.6);
                 
-                // Map Update
+                // Map
                 if (!userMarker) {
                     userMarker = L.marker([currentLat, currentLon], {zIndexOffset: 1000}).addTo(map);
-                    map.setView([currentLat, currentLon], 16);
+                    map.setView([currentLat, currentLon], 15);
+                    if(isRunning && !isNavigating && placesQueue.length === 0) scanSurroundings(currentLat, currentLon);
                 } else {
                     userMarker.setLatLng([currentLat, currentLon]);
                 }
+                
                 elSpeed.innerText = speedKmh;
 
-                // MAIN LOGIC LOOP
-                if (isTourActive) {
+                if (isRunning) {
+                    // Kiểm tra tốc độ
                     checkSpeedLimit(speedKmh, currentLat, currentLon);
-                    updateNavigation(currentLat, currentLon);
-                    checkTourGuideProximity(currentLat, currentLon);
+
+                    // Nav
+                    let navIsBusy = false;
+                    if (isNavigating) navIsBusy = processNavigation(currentLat, currentLon);
+
+                    // Guide
+                    if (!navIsBusy) processTourGuide(currentLat, currentLon);
                 }
             },
             (err) => console.error(err),
@@ -319,291 +280,211 @@
     }
     initLocation();
 
-    // --- 3. SAFETY: SPEED LIMIT ---
-    async function checkSpeedLimit(currentSpeed, lat, lon) {
-        const now = Date.now();
-        if (now - lastOverpassCall > 15000) { // Gọi API mỗi 15s
-            lastOverpassCall = now;
-            const query = `[out:json];way(around:25, ${lat}, ${lon})["maxspeed"];out tags;`;
+    // --- 4. SAFETY MODULE (UPDATE v1.9) ---
+    let lastOverpassCall = 0;
+    let currentLimit = DEFAULT_LIMIT_CAR; // Khởi tạo bằng mặc định
+
+    // Hàm cập nhật giao diện limit
+    function updateSpeedLimitDisplay(limitValue) {
+        if (limitValue) {
+            currentLimit = limitValue;
+        } else {
+            // Nếu không có giá trị (null/undefined), dùng mặc định theo loại xe
+            currentLimit = (vehicleType === 'car') ? DEFAULT_LIMIT_CAR : DEFAULT_LIMIT_BIKE;
+        }
+        elLimit.innerText = currentLimit;
+    }
+
+    async function checkSpeedLimit(speed, lat, lon) {
+        // Chỉ gọi API 15s/lần
+        if (Date.now() - lastOverpassCall > 15000) {
+            lastOverpassCall = Date.now();
+            
+            // Query tìm đường trong bán kính 20m
+            const query = `[out:json];way(around:20,${lat},${lon})["maxspeed"];out tags;`;
+            
             try {
                 const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-                const data = await res.json();
-                if (data.elements && data.elements.length > 0) {
-                    let rawLimit = parseInt(data.elements[0].tags.maxspeed);
-                    if (!isNaN(rawLimit)) {
-                        // Logic xe máy (Max 70km/h)
-                        if (vehicleType === 'bike' && rawLimit > 70) currentSpeedLimit = 70;
-                        else currentSpeedLimit = rawLimit;
-                        elLimit.innerText = currentSpeedLimit;
+                const d = await res.json();
+                
+                if (d.elements && d.elements.length > 0) {
+                    let roadLimit = parseInt(d.elements[0].tags.maxspeed);
+                    
+                    if (!isNaN(roadLimit)) {
+                        // Logic giới hạn xe máy
+                        if (vehicleType === 'bike' && roadLimit > 70) roadLimit = 70;
+                        updateSpeedLimitDisplay(roadLimit);
                     } else {
-                        currentSpeedLimit = null;
-                        elLimit.innerText = "--";
+                        // Tìm thấy đường nhưng không có tag maxspeed -> Dùng mặc định
+                        updateSpeedLimitDisplay(null);
                     }
+                } else {
+                    // Không tìm thấy đường (Off-road) -> Dùng mặc định
+                    updateSpeedLimitDisplay(null);
                 }
-            } catch (e) {}
-        }
-
-        if (currentSpeedLimit && currentSpeed > currentSpeedLimit + 5) {
-            elSpeedPanel.classList.add('warning');
-            if (!synth.speaking) speak("Bạn đang quá tốc độ!", true);
-        } else {
-            elSpeedPanel.classList.remove('warning');
-        }
-    }
-
-    // --- 4. NAVIGATION: TURN-BY-TURN ---
-    function updateNavigation(lat, lon) {
-        if (!routeSteps || nextStepIndex >= routeSteps.length) return;
-
-        const nextStep = routeSteps[nextStepIndex];
-        const stepLoc = nextStep.maneuver.location; 
-        const distToStep = getDist(lat, lon, stepLoc[1], stepLoc[0]);
-
-        elNavDist.innerText = distToStep < 1000 ? Math.round(distToStep) + " m" : (distToStep/1000).toFixed(1) + " km";
-
-        if (distToStep < 30) {
-            nextStepIndex++; // Đã qua điểm rẽ
-            updateNavigation(lat, lon);
-            return;
-        }
-
-        const modifier = nextStep.maneuver.modifier; 
-        const type = nextStep.maneuver.type;
-        
-        let icon = "⬆️";
-        let instruction = "Đi thẳng";
-        let laneMsg = "";
-
-        if (type === 'turn' || type === 'roundabout') {
-            if (modifier && modifier.includes('right')) {
-                icon = "➡️"; instruction = "Rẽ phải";
-                if (distToStep < 300) laneMsg = "💡 Đi làn bên phải";
-                // Ưu tiên đọc hướng dẫn rẽ nếu gần
-                if (distToStep < 150 && distToStep > 100) speak("Sắp rẽ phải, đi làn phải.", true);
-            } else if (modifier && modifier.includes('left')) {
-                icon = "⬅️"; instruction = "Rẽ trái";
-                if (distToStep < 300) laneMsg = "💡 Đi làn bên trái";
-                if (distToStep < 150 && distToStep > 100) speak("Sắp rẽ trái, đi làn trái.", true);
+            } catch(e) {
+                // Lỗi mạng -> Giữ nguyên giá trị cũ hoặc dùng mặc định
+                if(!currentLimit) updateSpeedLimitDisplay(null);
             }
-        } else if (type === 'arrive') {
-            icon = "🏁"; instruction = "Sắp đến đích";
         }
-
-        elNavIcon.innerText = icon;
-        elNavInstr.innerText = instruction;
-        elLaneHint.innerText = laneMsg;
+        
+        // Kiểm tra quá tốc độ
+        if (speed > currentLimit + 5) { // Cho phép sai số 5km/h
+            document.getElementById('speed-panel').classList.add('warning');
+            if(!synth.speaking) speak("Quá tốc độ! Giảm ga ngay.", true);
+        } else {
+            document.getElementById('speed-panel').classList.remove('warning');
+        }
     }
 
-    // --- 5. TOUR GUIDE: FETCH & PLAY ---
-    
-    // Bước A: Tìm đường & Tạo điểm quét
-    async function searchDestination() {
-        const query = document.getElementById('destination-input').value;
-        if (!query) return alert("Nhập điểm đến!");
+    // --- 5. NAVIGATION MODULE ---
+    async function setupNavigation(query) {
+        updateStatus("Đang tính toán...");
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=1`);
         const data = await res.json();
-        if (data.length === 0) return updateStatus("Không tìm thấy.");
-        const dest = data[0];
+        if (data.length === 0) return alert("Không tìm thấy!");
         
+        const dest = data[0];
         if (destMarker) map.removeLayer(destMarker);
         destMarker = L.marker([dest.lat, dest.lon]).addTo(map).bindPopup("Đích").openPopup();
-        map.fitBounds(L.featureGroup([userMarker, destMarker]).getBounds().pad(0.2));
-    }
 
-    async function calculateRouteAndScan() {
-        if (!destMarker) return alert("Vui lòng chọn điểm đến.");
-        isTourActive = true;
+        const url = `https://router.project-osrm.org/route/v1/driving/${currentLon},${currentLat};${dest.lon},${dest.lat}?overview=full&geometries=geojson&steps=true`;
+        const routeRes = await fetch(url);
+        const routeData = await routeRes.json();
+        
+        if (routeData.code !== 'Ok') return alert("Lỗi đường đi!");
+
+        const route = routeData.routes[0];
+        routeSteps = route.legs[0].steps;
+        nextStepIndex = 1;
+        isNavigating = true;
         elNavPanel.style.display = 'flex';
-        updateStatus("Đang tính đường & tìm di tích...");
 
-        const destPos = destMarker.getLatLng();
-        const url = `https://router.project-osrm.org/route/v1/driving/${currentLon},${currentLat};${destPos.lng},${destPos.lat}?overview=full&geometries=geojson&steps=true`;
-        
-        try {
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.code !== 'Ok') return updateStatus("Lỗi đường đi.");
-            
-            // Setup Nav
-            const route = data.routes[0];
-            routeSteps = route.legs[0].steps;
-            nextStepIndex = 1;
-            
-            // Draw Map
-            const latLngs = route.geometry.coordinates.map(c => [c[1], c[0]]);
-            if (routePolyline) map.removeLayer(routePolyline);
-            routePolyline = L.polyline(latLngs, {color: '#0d6efd', weight: 6}).addTo(map);
-            map.fitBounds(routePolyline.getBounds());
-            
-            // Trigger Scan
-            generateScanPointsAndFetch(latLngs);
-            speak(`Bắt đầu hành trình. Tôi sẽ vừa dẫn đường vừa thuyết minh về các di tích trên đường đi.`, true);
+        const latLngs = route.geometry.coordinates.map(c => [c[1], c[0]]);
+        if (routePolyline) map.removeLayer(routePolyline);
+        routePolyline = L.polyline(latLngs, {color: '#0d6efd', weight: 6}).addTo(map);
+        map.fitBounds(routePolyline.getBounds());
 
-        } catch (e) { updateStatus("Lỗi kết nối."); }
+        speak(`Bắt đầu đi đến ${dest.display_name.split(',')[0]}.`, true);
     }
 
-    // Bước B: Quét Wiki dọc đường
-    async function generateScanPointsAndFetch(pathCoords) {
-        // Lấy mẫu điểm trên đường đi để quét (cứ mỗi ~1km lấy 1 điểm)
-        // OSRM trả về rất nhiều điểm, ta lấy mẫu bước nhảy (step)
-        const samplePoints = [];
-        const step = Math.max(30, Math.floor(pathCoords.length / 15)); 
+    function processNavigation(lat, lon) {
+        if (!routeSteps || nextStepIndex >= routeSteps.length) return false;
+        const nextStep = routeSteps[nextStepIndex];
+        const stepLoc = nextStep.maneuver.location;
+        const dist = getDist(lat, lon, stepLoc[1], stepLoc[0]);
+
+        document.getElementById('nav-distance').innerText = dist < 1000 ? Math.round(dist)+"m" : (dist/1000).toFixed(1)+"km";
         
-        for(let i=0; i<pathCoords.length; i+=step) {
-            samplePoints.push({lat: pathCoords[i][0], lon: pathCoords[i][1]});
+        let instruction = "Đi thẳng";
+        let icon = "⬆️";
+        const modifier = nextStep.maneuver.modifier;
+        
+        if (nextStep.maneuver.type === 'turn') {
+            if (modifier && modifier.includes('right')) { icon = "➡️"; instruction = "Rẽ phải"; }
+            if (modifier && modifier.includes('left')) { icon = "⬅️"; instruction = "Rẽ trái"; }
+        } else if (nextStep.maneuver.type === 'arrive') {
+             icon = "🏁"; instruction = "Đến đích";
         }
-        // Thêm điểm cuối
-        samplePoints.push({lat: pathCoords[pathCoords.length-1][0], lon: pathCoords[pathCoords.length-1][1]});
 
-        updateStatus(`Đang quét dữ liệu lịch sử tại ${samplePoints.length} khu vực dọc lộ trình...`);
-        
-        let allResults = new Map();
-        
-        // Fetch song song
-        const promises = samplePoints.map(pt => 
-            fetch(`https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${pt.lat}|${pt.lon}&gsradius=1500&gslimit=10&format=json&origin=*`)
-            .then(r => r.json())
-        );
-        
-        const responses = await Promise.all(promises);
-        
-        // Gộp ID
-        let pageIds = [];
-        responses.forEach(data => {
-            if(data.query && data.query.geosearch) {
-                data.query.geosearch.forEach(p => {
-                    if (!allResults.has(p.pageid)) {
-                        allResults.set(p.pageid, p);
-                        pageIds.push(p.pageid);
-                    }
-                });
-            }
-        });
+        document.getElementById('nav-instruction').innerText = instruction;
+        document.getElementById('nav-icon').innerText = icon;
 
-        if (pageIds.length === 0) return updateStatus("Không tìm thấy địa điểm nổi tiếng nào.");
-
-        // Lấy chi tiết (Extracts) - Chia nhỏ nếu quá nhiều
-        // Wiki API giới hạn khoảng 50 ID 1 lần, ở đây làm đơn giản lấy 50 đầu tiên
-        const limitedIds = pageIds.slice(0, 50).join('|');
-        fetch(`https://vi.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&pageids=${limitedIds}&format=json&origin=*`)
-            .then(r => r.json())
-            .then(data => {
-                const pages = data.query.pages;
-                
-                // Xử lý và lọc
-                placesQueue = Array.from(allResults.values()).map(p => {
-                    if (!pages[p.pageid]) return null;
-                    const details = pages[p.pageid];
-                    const text = (p.title + " " + (details.extract || "")).toLowerCase();
-                    const isPriority = HISTORY_KEYWORDS.some(k => text.includes(k));
-                    
-                    // Chỉ lấy nếu là Lịch sử HOẶC có mô tả đủ dài
-                    if (!isPriority && (!details.extract || details.extract.length < 50)) return null;
-
-                    return {
-                        id: p.pageid,
-                        title: p.title,
-                        lat: p.lat,
-                        lon: p.lon,
-                        extract: details.extract || "Không có mô tả.",
-                        isPriority: isPriority
-                    };
-                }).filter(p => p !== null); // Bỏ null
-
-                updateStatus(`Đã tìm thấy ${placesQueue.length} địa điểm thú vị.`);
-                renderPlacesList();
-            });
+        if (dist < 30) { nextStepIndex++; return true; }
+        if (dist < 150 && dist > 120 && !synth.speaking) { speak(`Sắp ${instruction}.`, true); return true; }
+        return false;
     }
 
-    function renderPlacesList() {
-        listEl.innerHTML = "";
-        placesQueue.forEach(p => {
-            const li = document.createElement('li');
-            li.className = `place-card ${p.isPriority ? 'priority' : ''}`;
-            li.id = `place-${p.id}`;
-            li.innerHTML = `
-                <div class="place-header">
-                    <span class="place-title">${p.title} <span class="place-badge">Di tích</span></span>
-                </div>
-                <div class="place-desc">${p.extract}</div>
-            `;
-            listEl.appendChild(li);
-        });
-    }
-
-    // Bước C: Kiểm tra vị trí để đọc (Trigger Logic)
-    function checkTourGuideProximity(lat, lon) {
-        if (synth.speaking) return; // Nếu đang nói thì thôi
+    // --- 6. TOUR GUIDE MODULE ---
+    function processTourGuide(lat, lon) {
+        if (getDist(lat, lon, lastScanLat, lastScanLon) > 2000) scanSurroundings(lat, lon);
+        if (synth.speaking) return;
 
         let nearest = null;
-        let minDesc = 99999;
-
+        let minDist = 99999;
         placesQueue.forEach(p => {
             if (alreadyReadIds.includes(p.id)) return;
-
-            const dist = getDist(lat, lon, p.lat, p.lon);
-            
-            // Nếu vào vùng bán kính 400m
-            if (dist < 400) {
-                if (dist < minDesc) {
-                    minDesc = dist;
-                    nearest = p;
-                }
-            }
+            const d = getDist(lat, lon, p.lat, p.lon);
+            if (d < 500) { if (d < minDist) { minDist = d; nearest = p; } }
         });
 
         if (nearest) {
             alreadyReadIds.push(nearest.id);
-            // Highlight UI
+            // Highlight
             document.querySelectorAll('.place-card').forEach(e => e.classList.remove('active'));
             const card = document.getElementById(`place-${nearest.id}`);
-            if(card) {
-                card.classList.add('active');
-                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            
-            // Show Panel & Speak
+            if(card) { card.classList.add('active'); card.scrollIntoView({behavior:"smooth", block:"center"}); }
+
             elStoryPanel.style.display = 'flex';
-            elStoryText.innerText = `Đang đọc: ${nearest.title}`;
-            
-            const intro = nearest.isPriority ? "Bên cạnh có di tích lịch sử. " : "Sắp đi qua. ";
-            speak(`${intro} ${nearest.title}. ${nearest.extract}`, false);
+            elStoryText.innerText = nearest.title;
+            speak(`${nearest.isPriority ? 'Chú ý di tích. ' : 'Tại đây có '} ${nearest.title}. ${nearest.extract}`, false);
+        } else {
+             if(!synth.speaking) elStoryPanel.style.display = 'none';
         }
+    }
+
+    async function scanSurroundings(lat, lon) {
+        lastScanLat = lat; lastScanLon = lon;
+        updateStatus("Đang tìm địa điểm...");
+        const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=2000&gslimit=15&format=json&origin=*`;
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (!data.query || !data.query.geosearch) return;
+        const newPlaces = data.query.geosearch.filter(p => !placesQueue.some(old => old.id === p.pageid));
+        if (newPlaces.length === 0) return;
+
+        const ids = newPlaces.map(p => p.pageid).join('|');
+        const detailRes = await fetch(`https://vi.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&pageids=${ids}&format=json&origin=*`);
+        const detailData = await detailRes.json();
+        const pages = detailData.query.pages;
+
+        newPlaces.forEach(p => {
+            const details = pages[p.pageid];
+            if (details && details.extract && details.extract.length > 30) {
+                const text = (p.title + " " + details.extract).toLowerCase();
+                const isPriority = PRIORITY_KEYWORDS.some(k => text.includes(k));
+                placesQueue.push({ id: p.pageid, title: p.title, lat: p.lat, lon: p.lon, extract: details.extract, isPriority: isPriority });
+            }
+        });
+        renderList();
+    }
+
+    function renderList() {
+        listEl.innerHTML = "";
+        placesQueue.sort((a,b) => (b.isPriority - a.isPriority));
+        placesQueue.forEach(p => {
+            if (alreadyReadIds.includes(p.id)) return;
+            const li = document.createElement('li');
+            li.className = `place-card ${p.isPriority ? 'priority' : ''}`;
+            li.id = `place-${p.id}`;
+            li.innerHTML = `<div class="place-title">${p.title} <span class="place-badge">Di tích</span></div><div class="place-desc">${p.extract}</div>`;
+            listEl.appendChild(li);
+        });
     }
 
     // --- UTILS ---
     function speak(text, isUrgent) {
-        // Nếu tin khẩn cấp (Cảnh báo/Rẽ) -> Hủy cái đang đọc để nói ngay
-        if (isUrgent) {
-            synth.cancel();
-            elStoryPanel.style.display = 'none';
-        }
-        
+        if (isUrgent) { synth.cancel(); elStoryPanel.style.display = 'none'; }
+        else { if (synth.speaking) return; }
         const u = new SpeechSynthesisUtterance(text);
         u.lang = 'vi-VN';
-        u.rate = 1.0;
-        
-        u.onend = () => {
-            if (!isUrgent) elStoryPanel.style.display = 'none';
-        };
-        
+        u.onend = () => { if(!isUrgent) elStoryPanel.style.display = 'none'; };
         synth.speak(u);
     }
-
-    function stopTour() {
-        isTourActive = false;
-        synth.cancel();
-        elNavPanel.style.display = 'none';
-        elStoryPanel.style.display = 'none';
-        updateStatus("Đã dừng hành trình.");
-    }
-
     function getDist(lat1,lon1,lat2,lon2) {
         var R=6371000; var dLat=(lat2-lat1)*Math.PI/180; var dLon=(lon2-lon1)*Math.PI/180;
         var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
         return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
     }
+    function stopApp() {
+        isRunning = false; isNavigating = false; synth.cancel();
+        elNavPanel.style.display = 'none'; elStoryPanel.style.display = 'none';
+        updateStatus("Đã dừng.");
+    }
+    
+    // Khởi tạo mặc định
+    setVehicle('car');
 </script>
-
 </body>
 </html>
