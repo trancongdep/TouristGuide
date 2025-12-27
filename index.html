@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>HDV Du Lịch & An Toàn 24/7</title>
+    <title>HDV Du Lịch & Dẫn Đường v2.0</title>
     <meta name="theme-color" content="#212529">
     <link rel="manifest" href="manifest.json">
     
@@ -17,7 +16,7 @@
             display: flex; flex-direction: column; height: 100vh;
         }
         
-        /* --- DASHBOARD --- */
+        /* DASHBOARD */
         #dashboard-container {
             background: #212529; color: white;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1001; flex-shrink: 0;
@@ -25,7 +24,7 @@
 
         #speed-panel {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 15px; border-bottom: 1px solid #444; transition: background 0.3s;
+            padding: 8px 15px; border-bottom: 1px solid #444;
         }
         #speed-panel.warning { background: #dc3545; animation: flash 1s infinite; }
         @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
@@ -34,20 +33,14 @@
         .speed-value { font-size: 1.8rem; font-weight: bold; font-variant-numeric: tabular-nums; line-height: 1; }
         .speed-label { font-size: 0.7rem; text-transform: uppercase; color: #adb5bd; }
         
-        /* Vòng tròn giới hạn tốc độ */
         .limit-circle {
             width: 55px; height: 55px;
             border-radius: 50%; border: 4px solid #dc3545;
             background: white; color: #333;
             display: flex; justify-content: center; align-items: center;
-            font-weight: bold; font-size: 1.4rem;
-            position: relative;
+            font-weight: bold; font-size: 1.4rem; position: relative;
         }
-        /* Nhãn nhỏ "LIMIT" bên trong vòng tròn */
-        .limit-circle::after {
-            content: "LIMIT"; position: absolute; bottom: 4px;
-            font-size: 0.5rem; color: #666;
-        }
+        .limit-circle::after { content: "LIMIT"; position: absolute; bottom: 4px; font-size: 0.5rem; color: #666; }
 
         #nav-panel {
             background: #343a40; padding: 10px 15px; display: none;
@@ -64,16 +57,11 @@
         }
         .story-icon { margin-right: 10px; animation: pulse 1s infinite; font-size: 1.2rem;}
 
-        /* --- CONTROLS --- */
+        /* CONTROLS */
         .controls { background: white; padding: 10px; border-bottom: 1px solid #ddd; }
         
-        .vehicle-selector {
-            display: flex; background: #e9ecef; border-radius: 6px; padding: 3px; margin-bottom: 8px;
-        }
-        .vehicle-option {
-            flex: 1; text-align: center; padding: 6px; cursor: pointer;
-            border-radius: 4px; font-weight: 500; font-size: 0.9rem;
-        }
+        .vehicle-selector { display: flex; background: #e9ecef; border-radius: 6px; padding: 3px; margin-bottom: 8px; }
+        .vehicle-option { flex: 1; text-align: center; padding: 6px; cursor: pointer; border-radius: 4px; font-weight: 500; }
         .vehicle-option.active { background: white; color: #0d6efd; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: bold; }
 
         .input-group { display: flex; gap: 5px; margin-bottom: 8px; }
@@ -86,7 +74,7 @@
 
         #status { font-size: 0.8rem; color: #666; margin-top: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* --- MAP & LIST --- */
+        /* MAP & LIST */
         #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         #map { height: 50%; width: 100%; background: #e5e3df; }
         #places-list { height: 50%; overflow-y: auto; padding: 0; list-style: none; margin: 0; background: #f8f9fa; }
@@ -109,11 +97,7 @@
             <span class="speed-value" id="current-speed">0</span>
             <span class="speed-label">km/h</span>
         </div>
-        
-        <div class="limit-circle">
-            <span id="speed-limit">50</span>
-        </div>
-
+        <div class="limit-circle"><span id="speed-limit">50</span></div>
         <div class="speed-box">
             <span class="speed-value" style="font-size: 1.2rem;" id="vehicle-icon">🚗</span>
             <span class="speed-label" id="vehicle-label">Ô tô</span>
@@ -141,7 +125,7 @@
     </div>
 
     <div class="input-group">
-        <input type="text" id="destination-input" placeholder="Để trống để đi tự do...">
+        <input type="text" id="destination-input" placeholder="Nhập điểm đến (VD: Hồ Gươm)">
     </div>
     <div class="action-group">
         <button class="action-btn btn-go" onclick="startApp()">🚀 Bắt đầu</button>
@@ -168,7 +152,7 @@
     appId: "1:670121705534:web:1027ad98550573ad37116f"
   };
   const app = initializeApp(firebaseConfig);
-  console.log("App v1.9 Initialized");
+  console.log("App v2.0 Initialized");
 </script>
 
 <script>
@@ -185,14 +169,14 @@
     let isNavigating = false; 
     let vehicleType = 'car';
     
-    // NAV & GUIDE DATA
+    // DATA
     let routeSteps = [];
     let nextStepIndex = 0;
     let placesQueue = [];
     let alreadyReadIds = [];
     let lastScanLat = 0, lastScanLon = 0;
     
-    // UI ELEMENTS
+    // UI
     const elSpeed = document.getElementById('current-speed');
     const elLimit = document.getElementById('speed-limit');
     const elNavPanel = document.getElementById('nav-panel');
@@ -200,29 +184,23 @@
     const elStoryText = document.getElementById('story-text');
     const listEl = document.getElementById('places-list');
 
-    // TỐC ĐỘ MẶC ĐỊNH (Khi không có dữ liệu bản đồ)
-    // 50km/h cho Ô tô (Quy chuẩn đô thị)
-    // 40km/h cho Xe máy (Quy chuẩn đường nhỏ/hẻm an toàn)
     const DEFAULT_LIMIT_CAR = 50;
     const DEFAULT_LIMIT_BIKE = 40;
+    const PRIORITY_KEYWORDS = ['chùa', 'đình', 'đền', 'miếu', 'nhà thờ', 'di tích', 'lịch sử', 'bảo tàng', 'lăng', 'văn miếu', 'dinh', 'công viên'];
 
-    const PRIORITY_KEYWORDS = ['chùa', 'đình', 'đền', 'miếu', 'nhà thờ', 'di tích', 'lịch sử', 'bảo tàng', 'lăng', 'văn miếu', 'quốc tử giám', 'dinh', 'công viên'];
-
-    // --- 1. QUẢN LÝ XE & UI ---
+    // --- 1. QUẢN LÝ XE ---
     function setVehicle(type) {
         vehicleType = type;
         document.getElementById('opt-car').className = `vehicle-option ${type==='car'?'active':''}`;
         document.getElementById('opt-bike').className = `vehicle-option ${type==='bike'?'active':''}`;
         document.getElementById('vehicle-label').innerText = type==='car'?'Ô tô':'Xe máy';
         document.getElementById('vehicle-icon').innerText = type==='car'?'🚗':'🏍️';
-        
-        // Reset về mặc định ngay khi đổi xe
         updateSpeedLimitDisplay(null); 
     }
     
     function updateStatus(msg) { document.getElementById('status').innerText = msg; }
 
-    // --- 2. START APP ---
+    // --- 2. BẮT ĐẦU ---
     async function startApp() {
         const destInput = document.getElementById('destination-input').value.trim();
         isRunning = true;
@@ -236,26 +214,23 @@
                 map.setView([currentLat, currentLon], 15);
                 scanSurroundings(currentLat, currentLon);
             }
-            speak("Chế độ tự do kích hoạt. Sẵn sàng thuyết minh.", true);
+            speak("Chế độ tự do kích hoạt.", true);
         }
     }
 
-    // --- 3. GPS CORE LOOP ---
+    // --- 3. GPS LOOP ---
     function initLocation() {
-        if (!navigator.geolocation) return updateStatus("Lỗi: Không có GPS");
+        if (!navigator.geolocation) return updateStatus("Lỗi GPS");
         
         navigator.geolocation.watchPosition(
             (pos) => {
                 currentLat = pos.coords.latitude;
                 currentLon = pos.coords.longitude;
-                // Nếu GPS trả về null speed (đứng yên), gán bằng 0
                 const speedKmh = Math.round((pos.coords.speed || 0) * 3.6);
                 
-                // Map
                 if (!userMarker) {
                     userMarker = L.marker([currentLat, currentLon], {zIndexOffset: 1000}).addTo(map);
-                    map.setView([currentLat, currentLon], 15);
-                    if(isRunning && !isNavigating && placesQueue.length === 0) scanSurroundings(currentLat, currentLon);
+                    map.setView([currentLat, currentLon], 16);
                 } else {
                     userMarker.setLatLng([currentLat, currentLon]);
                 }
@@ -263,14 +238,12 @@
                 elSpeed.innerText = speedKmh;
 
                 if (isRunning) {
-                    // Kiểm tra tốc độ
                     checkSpeedLimit(speedKmh, currentLat, currentLon);
 
-                    // Nav
                     let navIsBusy = false;
                     if (isNavigating) navIsBusy = processNavigation(currentLat, currentLon);
 
-                    // Guide
+                    // Chỉ đọc thuyết minh khi KHÔNG bận dẫn đường
                     if (!navIsBusy) processTourGuide(currentLat, currentLon);
                 }
             },
@@ -280,66 +253,9 @@
     }
     initLocation();
 
-    // --- 4. SAFETY MODULE (UPDATE v1.9) ---
-    let lastOverpassCall = 0;
-    let currentLimit = DEFAULT_LIMIT_CAR; // Khởi tạo bằng mặc định
-
-    // Hàm cập nhật giao diện limit
-    function updateSpeedLimitDisplay(limitValue) {
-        if (limitValue) {
-            currentLimit = limitValue;
-        } else {
-            // Nếu không có giá trị (null/undefined), dùng mặc định theo loại xe
-            currentLimit = (vehicleType === 'car') ? DEFAULT_LIMIT_CAR : DEFAULT_LIMIT_BIKE;
-        }
-        elLimit.innerText = currentLimit;
-    }
-
-    async function checkSpeedLimit(speed, lat, lon) {
-        // Chỉ gọi API 15s/lần
-        if (Date.now() - lastOverpassCall > 15000) {
-            lastOverpassCall = Date.now();
-            
-            // Query tìm đường trong bán kính 20m
-            const query = `[out:json];way(around:20,${lat},${lon})["maxspeed"];out tags;`;
-            
-            try {
-                const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-                const d = await res.json();
-                
-                if (d.elements && d.elements.length > 0) {
-                    let roadLimit = parseInt(d.elements[0].tags.maxspeed);
-                    
-                    if (!isNaN(roadLimit)) {
-                        // Logic giới hạn xe máy
-                        if (vehicleType === 'bike' && roadLimit > 70) roadLimit = 70;
-                        updateSpeedLimitDisplay(roadLimit);
-                    } else {
-                        // Tìm thấy đường nhưng không có tag maxspeed -> Dùng mặc định
-                        updateSpeedLimitDisplay(null);
-                    }
-                } else {
-                    // Không tìm thấy đường (Off-road) -> Dùng mặc định
-                    updateSpeedLimitDisplay(null);
-                }
-            } catch(e) {
-                // Lỗi mạng -> Giữ nguyên giá trị cũ hoặc dùng mặc định
-                if(!currentLimit) updateSpeedLimitDisplay(null);
-            }
-        }
-        
-        // Kiểm tra quá tốc độ
-        if (speed > currentLimit + 5) { // Cho phép sai số 5km/h
-            document.getElementById('speed-panel').classList.add('warning');
-            if(!synth.speaking) speak("Quá tốc độ! Giảm ga ngay.", true);
-        } else {
-            document.getElementById('speed-panel').classList.remove('warning');
-        }
-    }
-
-    // --- 5. NAVIGATION MODULE ---
+    // --- 4. NAVIGATION & PRE-SCAN (Sửa lỗi quan trọng) ---
     async function setupNavigation(query) {
-        updateStatus("Đang tính toán...");
+        updateStatus("Đang tìm đường...");
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=1`);
         const data = await res.json();
         if (data.length === 0) return alert("Không tìm thấy!");
@@ -365,7 +281,29 @@
         routePolyline = L.polyline(latLngs, {color: '#0d6efd', weight: 6}).addTo(map);
         map.fitBounds(routePolyline.getBounds());
 
-        speak(`Bắt đầu đi đến ${dest.display_name.split(',')[0]}.`, true);
+        // FIX: Quét trước toàn bộ tuyến đường ngay lập tức
+        updateStatus("Đang tải dữ liệu thuyết minh dọc đường...");
+        await scanRouteSamples(latLngs);
+
+        speak(`Đã sẵn sàng. Bắt đầu di chuyển đến ${dest.display_name.split(',')[0]}.`, true);
+    }
+
+    // Hàm mới: Quét mẫu dọc đường đi
+    async function scanRouteSamples(pathCoords) {
+        // Lấy mẫu cứ 1km lấy 1 điểm để quét Wiki
+        const samplePoints = [];
+        // Ước tính 1 độ ~ 111km -> 0.01 độ ~ 1km
+        const step = Math.floor(pathCoords.length / 15) || 1; 
+
+        for(let i=0; i<pathCoords.length; i+=step) {
+            samplePoints.push({lat: pathCoords[i][0], lon: pathCoords[i][1]});
+        }
+        // Thêm điểm đích
+        samplePoints.push({lat: pathCoords[pathCoords.length-1][0], lon: pathCoords[pathCoords.length-1][1]});
+        
+        // Quét song song (Tối đa 10 request để không bị block)
+        const scanPromises = samplePoints.slice(0, 10).map(pt => scanSurroundings(pt.lat, pt.lon));
+        await Promise.all(scanPromises);
     }
 
     function processNavigation(lat, lon) {
@@ -390,34 +328,45 @@
         document.getElementById('nav-instruction').innerText = instruction;
         document.getElementById('nav-icon').innerText = icon;
 
-        if (dist < 30) { nextStepIndex++; return true; }
-        if (dist < 150 && dist > 120 && !synth.speaking) { speak(`Sắp ${instruction}.`, true); return true; }
-        return false;
+        if (dist < 30) { nextStepIndex++; return true; } // Đã qua ngã rẽ -> Bận xử lý
+        if (dist < 100 && dist > 80 && !synth.speaking) { speak(`Sắp ${instruction}.`, true); return true; } // Nhắc nhở -> Bận
+        return false; // Rảnh, có thể thuyết minh
     }
 
-    // --- 6. TOUR GUIDE MODULE ---
+    // --- 5. TOUR GUIDE ---
     function processTourGuide(lat, lon) {
-        if (getDist(lat, lon, lastScanLat, lastScanLon) > 2000) scanSurroundings(lat, lon);
+        // Nếu đã đi xa điểm quét cuối cùng quá 2km -> Quét tiếp
+        if (getDist(lat, lon, lastScanLat, lastScanLon) > 2000) {
+            scanSurroundings(lat, lon);
+        }
+
         if (synth.speaking) return;
 
         let nearest = null;
         let minDist = 99999;
+        
+        // Tìm điểm chưa đọc gần nhất
         placesQueue.forEach(p => {
             if (alreadyReadIds.includes(p.id)) return;
             const d = getDist(lat, lon, p.lat, p.lon);
-            if (d < 500) { if (d < minDist) { minDist = d; nearest = p; } }
+            // Bán kính kích hoạt đọc: 600m
+            if (d < 600) { 
+                if (d < minDist) { minDist = d; nearest = p; } 
+            }
         });
 
         if (nearest) {
             alreadyReadIds.push(nearest.id);
-            // Highlight
+            // UI Update
             document.querySelectorAll('.place-card').forEach(e => e.classList.remove('active'));
             const card = document.getElementById(`place-${nearest.id}`);
             if(card) { card.classList.add('active'); card.scrollIntoView({behavior:"smooth", block:"center"}); }
 
             elStoryPanel.style.display = 'flex';
             elStoryText.innerText = nearest.title;
-            speak(`${nearest.isPriority ? 'Chú ý di tích. ' : 'Tại đây có '} ${nearest.title}. ${nearest.extract}`, false);
+            
+            const intro = nearest.isPriority ? "Phía trước có di tích. " : "Đang đi qua. ";
+            speak(`${intro} ${nearest.title}. ${nearest.extract}`, false);
         } else {
              if(!synth.speaking) elStoryPanel.style.display = 'none';
         }
@@ -425,34 +374,40 @@
 
     async function scanSurroundings(lat, lon) {
         lastScanLat = lat; lastScanLon = lon;
-        updateStatus("Đang tìm địa điểm...");
-        const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=2000&gslimit=15&format=json&origin=*`;
-        const res = await fetch(url);
-        const data = await res.json();
+        // Bán kính quét Wiki: 2000m
+        const url = `https://vi.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=2000&gslimit=10&format=json&origin=*`;
         
-        if (!data.query || !data.query.geosearch) return;
-        const newPlaces = data.query.geosearch.filter(p => !placesQueue.some(old => old.id === p.pageid));
-        if (newPlaces.length === 0) return;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if (!data.query || !data.query.geosearch) return;
+            
+            // Lọc các điểm chưa có trong hàng đợi
+            const newPlaces = data.query.geosearch.filter(p => !placesQueue.some(old => old.id === p.pageid));
+            if (newPlaces.length === 0) return;
 
-        const ids = newPlaces.map(p => p.pageid).join('|');
-        const detailRes = await fetch(`https://vi.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&pageids=${ids}&format=json&origin=*`);
-        const detailData = await detailRes.json();
-        const pages = detailData.query.pages;
+            const ids = newPlaces.map(p => p.pageid).join('|');
+            const detailRes = await fetch(`https://vi.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&pageids=${ids}&format=json&origin=*`);
+            const detailData = await detailRes.json();
+            const pages = detailData.query.pages;
 
-        newPlaces.forEach(p => {
-            const details = pages[p.pageid];
-            if (details && details.extract && details.extract.length > 30) {
-                const text = (p.title + " " + details.extract).toLowerCase();
-                const isPriority = PRIORITY_KEYWORDS.some(k => text.includes(k));
-                placesQueue.push({ id: p.pageid, title: p.title, lat: p.lat, lon: p.lon, extract: details.extract, isPriority: isPriority });
-            }
-        });
-        renderList();
+            newPlaces.forEach(p => {
+                const details = pages[p.pageid];
+                if (details && details.extract && details.extract.length > 30) {
+                    const text = (p.title + " " + details.extract).toLowerCase();
+                    const isPriority = PRIORITY_KEYWORDS.some(k => text.includes(k));
+                    
+                    placesQueue.push({ id: p.pageid, title: p.title, lat: p.lat, lon: p.lon, extract: details.extract, isPriority: isPriority });
+                }
+            });
+            renderList();
+        } catch (e) { console.log("Wiki Error"); }
     }
 
     function renderList() {
         listEl.innerHTML = "";
-        placesQueue.sort((a,b) => (b.isPriority - a.isPriority));
+        placesQueue.sort((a,b) => (b.isPriority - a.isPriority)); // Ưu tiên di tích lên đầu
         placesQueue.forEach(p => {
             if (alreadyReadIds.includes(p.id)) return;
             const li = document.createElement('li');
@@ -463,7 +418,41 @@
         });
     }
 
-    // --- UTILS ---
+    // --- 6. SAFETY & UTILS ---
+    let lastOverpassCall = 0;
+    let currentLimit = DEFAULT_LIMIT_CAR; 
+
+    function updateSpeedLimitDisplay(limitValue) {
+        if (limitValue) currentLimit = limitValue;
+        else currentLimit = (vehicleType === 'car') ? DEFAULT_LIMIT_CAR : DEFAULT_LIMIT_BIKE;
+        elLimit.innerText = currentLimit;
+    }
+
+    async function checkSpeedLimit(speed, lat, lon) {
+        if (Date.now() - lastOverpassCall > 15000) {
+            lastOverpassCall = Date.now();
+            const query = `[out:json];way(around:20,${lat},${lon})["maxspeed"];out tags;`;
+            try {
+                const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+                const d = await res.json();
+                if (d.elements && d.elements.length > 0) {
+                    let roadLimit = parseInt(d.elements[0].tags.maxspeed);
+                    if (!isNaN(roadLimit)) {
+                        if (vehicleType === 'bike' && roadLimit > 70) roadLimit = 70;
+                        updateSpeedLimitDisplay(roadLimit);
+                    } else updateSpeedLimitDisplay(null);
+                } else updateSpeedLimitDisplay(null);
+            } catch(e) { if(!currentLimit) updateSpeedLimitDisplay(null); }
+        }
+        
+        if (speed > currentLimit + 5) {
+            document.getElementById('speed-panel').classList.add('warning');
+            if(!synth.speaking) speak("Giảm tốc độ!", true);
+        } else {
+            document.getElementById('speed-panel').classList.remove('warning');
+        }
+    }
+
     function speak(text, isUrgent) {
         if (isUrgent) { synth.cancel(); elStoryPanel.style.display = 'none'; }
         else { if (synth.speaking) return; }
@@ -472,18 +461,19 @@
         u.onend = () => { if(!isUrgent) elStoryPanel.style.display = 'none'; };
         synth.speak(u);
     }
+    
     function getDist(lat1,lon1,lat2,lon2) {
         var R=6371000; var dLat=(lat2-lat1)*Math.PI/180; var dLon=(lon2-lon1)*Math.PI/180;
         var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
         return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
     }
+    
     function stopApp() {
         isRunning = false; isNavigating = false; synth.cancel();
         elNavPanel.style.display = 'none'; elStoryPanel.style.display = 'none';
         updateStatus("Đã dừng.");
     }
     
-    // Khởi tạo mặc định
     setVehicle('car');
 </script>
 </body>
